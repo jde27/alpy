@@ -7,7 +7,48 @@ import vector_spaces as vs
 import graded_vector_spaces as gvs
 
 class dg_cat():
-    'Differential graded category'
+    '''The class of differential graded categories over a field k.
+    
+    Usage:
+        D=dg_cat(k,obj,mor,diff,prod)
+        k [ri.field]: field of definition of D
+        obj [set]: set of objects in D
+        mor [dictionary]:
+            { (X,Y) [pair of objects in D.obj] :
+                morphism space X-->Y [gvs.graded_vector_space] }
+        diff [dictionary]:
+            { (X,Y) [pair of objects in D.obj] :
+                differential on hom(X,Y) [gvs.graded_homomorphism]
+                                                of degree 1 }
+        prod [dictionary]:
+            { (X,Y,Z) [triple of objects in D.obj] :
+                product hom(Y,Z) (x) hom(X,Y) --> hom(X,Z)
+                            [gvs.graded_homomorphism] of degree 0 }
+
+    
+    Attributes:
+        D.base [ri.field]: field of definition of D
+############################################
+        V.graded_pieces [dictionary]:
+            { n [int] : W [vs.vector_space] }
+    
+    Methods:
+        V^n:
+            Args: n [int]
+            Returns: [vs.vector_space] The nth graded piece of V.
+        V*W, V.otimes(W):
+            Args: V, W [graded_vector_space]
+            Returns: [graded_vector_space] Tensor product of V and W.
+        V+W, V.oplus(W):
+            Args: V, W [graded_vector_space]
+            Returns: [graded_vector_space] Direct sum of V and W.
+        V.shift(n=1):
+            Args: n [int] default=1
+            Returns: [graded_vector_space] Shift of V by n in the grading.
+        print(V):
+            Returns: A string showing the dictionary
+                { n : (V^n).dim }
+    '''
     def __init__(self,obj,mor,diff,prod):
         '''
         Input:
@@ -269,121 +310,3 @@ class dynkin_graph():
                     # Confused about the m_2 products from triangles - have asked Ailsa
                     prod[(X,Y,Z)]=gr_hom(0,mor[(Y,Z)]*mor[(X,Y)],mor[(X,Z)],{})
         return dg_cat(obj,mor,diff,prod)
-
-
-    
-'''
-# List of objects
-obj=['A','B']
-
-# Data-type:
-# graded vector space
-#
-# This is stored as an array, e.g.
-# V=[0,1,0,1]
-# where V[0] is the minimal grading of a nonzero graded piece
-# V[1] is the dimension of V^{V[0]}
-# V[2] is the dimension of V^{V[0]+1}
-# etc
-#
-# A graded module over the category is then an array of
-# graded vector spaces indexed by the objects of the category
-# and the hom spaces of the category is an array of graded vector spaces
-# indexed by pairs of objects of the category
-hom={'A':{'A':[0,1,0,1],'B':[0,1]},'B':{'A':[2,1],'B':[0,1,0,1]}}
-O=numpy.matrix([[0]])
-I=numpy.matrix([[1]])
-r=numpy.zeros(shape=[0,1])
-c=numpy.zeros(shape=[1,0])
-z=numpy.zeros(shape=[0,0])
-mu={'A':
-    {'A':
-     {'A':{0:{0:I,1:c,2:I},1:{0:r,1:z,2:r},2:{0:I,1:c,2:O}},
-      'B':{0:{0:I,1:c,2:0}}},
-     'B':
-     {'A':{2:{0:I}},
-      'B':{0:{0:I},1:{0:r},2:{0:O}}}},
-    'B':
-    {'A':
-     {'A':{0:{2:I},1:{2:r},2:{2:O}},
-      'B':{0:{0:I}}},
-     'B':
-     {'A':{2:{0:I,1:c,2:O}},
-      'B':{0:{0:I,1:c,2:I},1:{0:r,1:z,2:r},2:{0:I,1:c,2:O}}}}}
-#
-# mu['A']['B']['C'][k][l] gives the matrix for multiplying
-# hom^k(B,C) (x) hom^l(A,B) --> hom^{k+l}(A,C)
-#
-# act['A']['B'][k][l] gives the matrix for the module action
-# M^k(B) (x) hom^l(A,B) --> M^{k+l}(A)
-#
-# d['A'][k] gives the matrix for the differential
-# M^k(A)-->M^{k+1}(A)
-#
-#
-# This function returns the Yoneda module associated to the object L
-#
-def yoneda(L):
-    Y={}
-    d={}
-    act={}
-    for A in obj:
-        Y[A]=hom[A][L]
-    for B in obj:
-        d[B]=[]
-        for k in range(1,len(Y[B])-1):
-            d[B].append(numpy.zeros(shape=[Y[B][k],Y[B][k+1]]))
-            for A in obj:
-                act[A]={}
-                act[A][B]={}
-                act[A][B][k]={}
-                for l in range(1,len(hom[A][B])-1):
-                    act[A][B][k][l]=mu[A][B][L][k][l]
-    return Y,d,act
-
-
-# If X is a graded vector space starting from degree K
-# and we ask for the dimension of the degree s-K piece
-# this could be out of range, in which case this function returns zero
-def gr_dim( X,s ):
-    q=s-X[0]
-    if 1 <= q <= len(X)-1:
-        return X[q]
-    else:
-        return 0
-
-# This function returns the sum of two graded vector spaces
-def gr_sum( X,Y ):
-    Z=[min(X[0],Y[0])] # what is the minimal grading in the sum?
-    maxgr=max(X[0]+len(X)-1,Y[0]+len(Y)-1) # what is the maximal grading?
-    for g in range(1,maxgr-Z[0]+1):
-        Z.append(gr_dim(X,g+Z[0])+gr_dim(Y,g+Z[0]))
-    return Z
-
-# This function returns the tensor product of two graded vector spaces
-def gr_tensor( X,Y ):
-    Z=[X[0]+Y[0]]
-    for s in range(1,len(X)+len(Y)-2):
-        Z.append(0)
-    for s in range(1,len(X)):
-        for t in range(1,len(Y)):
-            Z[s+t-1]=Z[s+t-1]+X[s]*Y[t]
-    return Z
-    
-# This function returns the shift X[1] of a graded vector space X
-def gr_shift( X ):
-    X[0]=X[0]-1
-    return X
-
-# This function takes a dg-module M and an object Q, and returns the
-# dg-module T_Q M. Recall that the underlying vector space associated
-# to the object A is:
-#
-# (T_Q M)(A) = M(A) (+) (M(Q) (x) hom(A,Q))[1]
-#
-def twist( M,Q ):
-    N={}
-    for A in obj:
-        N[A]=gr_sum(M[A],gr_shift(gr_tensor(M[Q],hom[A][Q])))
-    return N
-'''
