@@ -1,14 +1,10 @@
 #!/usr/bin/python
 
-import math
-import sys
-from fractions import gcd
-from array import *
 import numpy as np
-import vector_spaces
-
-    
-    
+import rings as ri
+import rationals as QQ
+import vector_spaces as vs
+import graded_vector_spaces as gvs
 
 class dg_cat():
     'Differential graded category'
@@ -16,7 +12,7 @@ class dg_cat():
         '''
         Input:
         obj/objects is a set
-        mor/morphisms is a dictionary of gr_vs indexed by pairs of objects
+        mor/morphisms is a dictionary of gvs.graded_vector_space indexed by pairs of objects
         diff is a dictionary of gr_hom indexed by morphisms
         diff[(A,B)] is a gr_hom with:
            source morphism[(A,B)] and target morphism[(A,B)].shift()
@@ -42,7 +38,7 @@ class dg_cat():
             if (X,Y) in A.morphisms:
                 return A.morphisms[(X,Y)]
             else:
-                return zero_gr_vs()
+                return gvs.graded_vector_space.zero(K)
         else:
             print("Cannot take homs between ",X," and ",Y," as they do not live in ",A,".")
     def d(self,X,Y):
@@ -60,7 +56,7 @@ class dg_cat():
             if (X,Y) in A.diff:
                 return A.diff[(X,Y)]
             else:
-                return zero_gr_hom(1,A.hom(X,Y),A.hom(X,Y))
+                return zero_gr_hom(1,A.hom(X,Y),A.hom(X,Y))###
     def m(self,X,Y,Z):
         '''
         If A=self is a dg-category and X,Y,Z are objects of A,
@@ -138,7 +134,7 @@ class dg_mod():
             if X in M.module:
                 return M.module[X]
             else:
-                return zero_gr_vs()
+                return gvs.graded_vector_space.zero(K)
         else:
             print("Module does not exist: ",X," is not in ",A,".")
     def d(self,X):
