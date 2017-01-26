@@ -175,6 +175,15 @@ class ghomo():
         self.degree=d
         self.gps={}
 
+    def __xor__(self,n):
+        ''' Accesses the graded piece F^n '''
+        k=self.source.base
+        if n in self.gps:
+            return self.gps[n]
+        else:
+            M=k.mod(np.zeros(shape=(self.target.dim,self.source.dim)))
+            return homo(0,self.source,self.target)
+
     def __mul__(self,other):
         'Compose graded linear maps'
         d=self.degree
@@ -188,7 +197,7 @@ class ghomo():
             if n+d in N:
                 # We only bother to keep track of maps
                 # between nonzero vector spaces
-                new_ghomo.gps[n]=M[n]*N[n+d]
+                new_ghomo.gps[n]=(self^n)*(other^(n+d))
         return new_ghomo
     
     def __add__(self,other):
@@ -204,10 +213,10 @@ class ghomo():
                 new_ghomo.gps=self.gps
                 for n in other.gps:
                     if n in new_ghomo.gps:
-                        new_ghomo.gps[n]+=other.gps[n]
+                        new_ghomo.gps[n]+=other^n
                     else:
-                        new_ghomo.gps[n]=other.gps[n]
-                        return new_ghomo
+                        new_ghomo.gps[n]=other^n
+                return new_ghomo
                 else:
                     print("Cannot add graded linear maps with ",\
                           "different sources/targets.")
@@ -225,15 +234,7 @@ class ghomo():
                 new_ghomo[n]=(self^n).oplus(other^n)
             return new_ghomo
 
-    def __xor__(self,n):
-        ''' Accesses the graded piece F^n '''
-        k=self.source.base
-        if n in self.gps:
-            return self.gps[n]
-        else:
-            M=k.mod(np.zeros(shape=(self.target.dim,self.source.dim)))
-            return homo(0,self.source,self.target)
-        
+      
     def otimes(self,other):
         'Tensor/Kronecker/outer product f\otimes g of graded linear maps'
         #Still needs further testing
@@ -250,14 +251,14 @@ class ghomo():
                 if m+n not in new_ghomo.gps:
                     new_ghomo.gps[m+n]=addendum
                 else:
-                    new_ghomo.gps[m+n]=new_ghomo.gps[m+n].oplus(addendum)
+                    new_ghomo.gps[m+n]=new_ghomo^(m+n).oplus(addendum)
         return new_ghomo
 
     def ker(self):
         'Kernel of graded linear maps'
         new_gvs=gvs(self.base)
         for n in self.gps:
-            new_gvs.gps[n]=self.gps[n].ker()
+            new_gvs.gps[n]=(self^n).ker()
         return new_gvs
 
     def image(self):
@@ -265,7 +266,7 @@ class ghomo():
         new_gvs=gvs(self.base)
         d=self.degree
         for n in self.gps:
-            new_gvs.gps[n+d]=self.gps[n].image()
+            new_gvs.gps[n+d]=(self^n).image()
         return new_gvs
 
             
@@ -285,7 +286,8 @@ class ghomo():
 
 '''Some random tests
 Q=QQ.QQ()
-V=gvs(Q,{0:2,3:2})
+V=gvs(Q)
+V.setgps({0:2,3:2})
 print(((V.oplus(V.otimes(V)))^3).dim)
 N=np.array([[1,1],[0,0]])
 M={3:N}
