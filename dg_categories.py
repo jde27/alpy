@@ -295,10 +295,12 @@ class dg_mod():
                 d2=(M.diff(Q)).otimes(A.hom(X,Q).Id())##### SHIFT/SIGNS?!s
                 twisted_diff[X]=ghomo.block(d1,B,Z,d2)
                 #Finally, construct the twisted action
-                    
-                ###### still to do twisted_act
-                return dg_mod(A,twisted_module,\
-                              twisted_diff,twisted_act)
+                for Y in A.objects:
+                    e1=M.act[(X,Y)]
+                    e2=(M.mod(Q).Id()).otimes(M.m(X,Y,Q))# SHIFTS
+                    twisted_act(X,Y)=e1.oplus(e2)
+            return dg_mod(A,twisted_module,\
+                          twisted_diff,twisted_act)
         else:
             print("Cannot twist around ",Q,\
                   " as it is not an object of ",A,".")

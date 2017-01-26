@@ -92,6 +92,12 @@ class vs():
         else:
             print("Quotient vector space has negative dimension...")
 
+    def Id(self):
+        '''Returns the identity homomorphism associated to this vector space.'''
+        k=self.base
+        M=k.mod(np.eye(self.dim))
+        return homo(self,self,M)
+            
 class homo():
     '''The class of linear maps between vector spaces
 

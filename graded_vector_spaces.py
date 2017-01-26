@@ -140,7 +140,14 @@ class gvs():
         if space_test and degree_test:
             block_ghomo=ghomo(d,V1+V2,W1+W2)
             M=np.asarray()
-        
+
+    def Id(self):
+        '''Returns the identity homomorphism for this
+        graded vector space.'''
+        identity_ghomo=ghomo(0,self,self)
+        for n in self.gps:
+            identity_homomorphism.gps[n]=(self^n).Id()
+        return identity_ghomo
     
 class ghomo():
     '''The class of graded maps between graded vector spaces.
@@ -287,6 +294,12 @@ class ghomo():
                 print("ghomo requires final argument ",\
                       "to be of type np.array or homomomorphism.")
                 
+    def shift(self,n=1):
+        shifted_ghomo=ghomo(self.degree,self.source.shift(n),self.target)
+        for m in self.gps:
+            shifted_ghomo.gps[m-n]=self.gps[m]
+        return shifted_ghomo
+    
     @classmethod
     def block(cls,A,B,C,D):
         '''Returns a block matrix from four compatible
