@@ -143,23 +143,20 @@ class homo():
             print("Cannot add linear maps with different sources/targets.")
             
     def oplus(self,other):
-        '''Form a block matrix. Arg: other [homo].'''
-        A=self.matrix
-        B=other.matrix
-        V1=self.source
-        V2=other.source
-        W1=self.target
-        W2=other.target
-        k=V1.base
-        new_source=V1+V2
-        new_target=W1+W2
-        y1,x1=A.shape
-        y2,x2=B.shape
-        C=k.mod(np.zeros(shape=(y1,x2)))
-        D=k.mod(np.zeros(shape=(y2,x1)))
-        E=np.asarray(np.bmat([[A,C],[D,B]])) # bmat outputs np.matrix
-        return homo(new_source,new_target,E)
-    
+        '''Form a block diagonal matrix. Arg: other [homo].'''
+        A=self
+        D=other
+        k=self.base
+        if D.base==k:
+            y1,x1=A.matrix.shape
+            y2,x2=D.matrix.shape
+            B=homo(D.source,A.target,k.mod(np.zeros(shape=(y1,x2))))
+            C=homo(A.source,D.target,k.mod(np.zeros(shape=(y2,x1))))
+            return homo.block(A,B,C,D)
+        else:
+            print("Cannot take direct sum of linear maps "\
+                  "over different fields.")
+
     def otimes(self,other):
         '''Tensor product of linear map f\otimes g
         (also known as Kronecker or outer product).
@@ -182,6 +179,23 @@ class homo():
         rank,nullity=rank_nullity(self.matrix)
         return vs(self.base,rank)
 
+    @classmethod
+    def block(cls,A,B,C,D):
+        V1,W1=A.source,A.target
+        V2,W2=D.source,D.target
+        V1_test,W2_test=C.source,C.target
+        V2_test,W1_test=B.source,B.target
+        space_test=(V1==V1_test and V2==V2_test and \
+                     W1==W1_test and W2==W2_test)
+        if space_test:
+            new_source,new_target=V1+V2,W1+W2
+            E=np.asarray(np.bmat([[A.matrix,C.matrix],[D.matrix,B.matrix]]))
+            return homo(new_source,new_target,E)
+        else:
+            print("Cannot take direct sum of homomorphisms: sources ",\
+                  "and targets are incompatible.")
+
+    
 '''Some simple examples
 Q=QQ.QQ()
 V=vs(3,Q)

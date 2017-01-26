@@ -3,7 +3,6 @@
 import numpy as np
 import rings as ri
 import rationals as QQ
-import vector_spaces as vs
 from graded_vector_spaces import *
 
 class dg_cat():
@@ -276,17 +275,33 @@ class dg_mod():
         for X in self.cat.objects:
             total+=self.d(X).cohomology()
         return total
-##########################################    
+
     def twist(Q):
         A=self.cat
         M=self
+        twisted_module={}
+        twisted_diff={}
+        twisted_act={}
         if Q in A.objects:
             for X in A.objects:
-                a=M.mod(X)+((M.mod(Q))*A.hom(X,Q)).shift()
-                if n.graded_pieces:
-                    N[X]=n
+                # First construct the twisted module
+                S=M.mod(X)
+                T=((M.mod(Q))*A.hom(X,Q)).shift()
+                twisted_module[X]=S+T
+                # Then construct the twisted differential
+                d1=M.diff(X)
+                B=M.act[(X,Q)].shift()########### SHIFT?!?!
+                Z=ghomo(1,S,T)
+                d2=(M.diff(Q)).otimes(A.hom(X,Q).Id())##### SHIFT/SIGNS?!s
+                twisted_diff[X]=ghomo.block(d1,B,Z,d2)
+                #Finally, construct the twisted action
+                    
+                ###### still to do twisted_act
+                return dg_mod(A,twisted_module,\
+                              twisted_diff,twisted_act)
         else:
-            print("Cannot twist around ",X," as it is not an object of ",A,".")
+            print("Cannot twist around ",Q,\
+                  " as it is not an object of ",A,".")
         
 #### A useful source of dg-categories
 

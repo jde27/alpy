@@ -87,7 +87,7 @@ class gvs():
             else:
                 new_gvs.gps[n]=other.gps[n]
         return new_gvs
-    
+
     def __add__(self,other):
         '''Direct sum of graded vector spaces'''
         return self.oplus(other)
@@ -128,6 +128,18 @@ class gvs():
                     print("Graded pieces over different fields")
             else:
                 print("Tried to create a graded vector space out of bananas.")
+
+            
+        V1,W1=A.source,A.target
+        V2,W2=D.source,D.target
+        V1_test,W2_test=C.source,C.target
+        V2_test,W1_test=B.source,B.target
+        space_test=(V1==V1_test and V2==V2_test and \
+                     W1==W1_test and W2==W2_test)
+
+        if space_test and degree_test:
+            block_ghomo=ghomo(d,V1+V2,W1+W2)
+            M=np.asarray()
         
     
 class ghomo():
@@ -222,22 +234,14 @@ class ghomo():
                           "different sources/targets.")
 
     def oplus(self,other):
-        '''Form a block matrix of graded linear maps'''
+        '''Form a block diagonal matrix of graded linear maps'''
         d=self.degree
-        if d!=other.degree:
-            print("Can't direct sum maps of different degrees!")
-        else:
-            new_source=self.source+other.source
-            new_target=self.target+other.target
-            new_ghomo=ghomo(d,new_source,new_target)
-            for n in (self.gps or other.gps):
-                new_ghomo[n]=(self^n).oplus(other^n)
-            return new_ghomo
-
+        B=ghomo(d,other.source,self.target)
+        C=ghomo(d,self.source,other.target)
+        return ghomo.block(self,B,C,other)
       
     def otimes(self,other):
         'Tensor/Kronecker/outer product f\otimes g of graded linear maps'
-        #Still needs further testing
         d=self.degree
         e=other.degree
         A=self.gps
@@ -268,7 +272,6 @@ class ghomo():
         for n in self.gps:
             new_gvs.gps[n+d]=(self^n).image()
         return new_gvs
-
             
     def cohomology(self):
         'Cohomology of a graded linear map, that is kernel/image'
@@ -283,7 +286,22 @@ class ghomo():
             else:
                 print("ghomo requires final argument ",\
                       "to be of type np.array or homomomorphism.")
+                
+    @classmethod
+    def block(cls,A,B,C,D):
+        '''Returns a block matrix from four compatible
+        graded homomorphisms.'''
+        d,d_other=A.degree,(B.degree,C.degree,D.degree)
+        if (x==d for x in d_other):
+            block_ghomo=ghomo(d,A.source+D.source,A.target+D.target)
+            for n in (A.gps or B.gps or C.gps or D.gps):
+                block_ghomo.gps[n]=homo.block(A^n,B^n,C^n,D^n)
+            return block_ghomo
+        else:
+            print("Can't add graded homomorphisms of different degrees.")
 
+
+                
 '''Some random tests
 Q=QQ.QQ()
 V=gvs(Q)
