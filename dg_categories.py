@@ -4,7 +4,7 @@ import numpy as np
 import rings as ri
 import rationals as QQ
 import vector_spaces as vs
-import graded_vector_spaces as gvs
+from graded_vector_spaces import *
 
 class dg_cat():
     '''The class of differential graded categories over a field k.
@@ -15,15 +15,15 @@ class dg_cat():
         obj [set]: set of objects in D
         mor [dictionary]:
             { (X,Y) [pair of objects in D.obj] :
-                morphism space X-->Y [gvs.graded_vector_space] }
+                morphism space X-->Y [gvs] }
         diff [dictionary]:
             { (X,Y) [pair of objects in D.obj] :
-                differential on hom(X,Y) [gvs.graded_homomorphism]
+                differential on hom(X,Y) [ghomo]
                                                 of degree 1 }
         prod [dictionary]:
             { (X,Y,Z) [triple of objects in D.obj] :
                 product hom(Y,Z) (x) hom(X,Y) --> hom(X,Z)
-                            [gvs.graded_homomorphism] of degree 0 }
+                            [ghomo] of degree 0 }
 
     
     Attributes:
@@ -37,23 +37,24 @@ class dg_cat():
             Args: n [int]
             Returns: [vs.vector_space] The nth graded piece of V.
         V*W, V.otimes(W):
-            Args: V, W [graded_vector_space]
-            Returns: [graded_vector_space] Tensor product of V and W.
+            Args: V, W [gvs]
+            Returns: [gvs] Tensor product of V and W.
         V+W, V.oplus(W):
-            Args: V, W [graded_vector_space]
-            Returns: [graded_vector_space] Direct sum of V and W.
+            Args: V, W [gvs]
+            Returns: [gvs] Direct sum of V and W.
         V.shift(n=1):
             Args: n [int] default=1
-            Returns: [graded_vector_space] Shift of V by n in the grading.
+            Returns: [gvs] Shift of V by n in the grading.
         print(V):
             Returns: A string showing the dictionary
                 { n : (V^n).dim }
     '''
-    def __init__(self,obj,mor,diff,prod):
+    def __init__(self,k,obj,mor,diff,prod):
         '''
         Input:
+        k [ri.field] is a field over which the category is linear.
         obj/objects is a set
-        mor/morphisms is a dictionary of gvs.graded_vector_space indexed by pairs of objects
+        mor/morphisms is a dictionary of gvs indexed by pairs of objects
         diff is a dictionary of gr_hom indexed by morphisms
         diff[(A,B)] is a gr_hom with:
            source morphism[(A,B)] and target morphism[(A,B)].shift()
@@ -62,7 +63,8 @@ class dg_cat():
            source morphism[(B,C)]*morphism[(A,B)]
            target morphism[(A,C)]
         In all cases, we only bother to include nonzero stuff.
-        '''#        for A,B in objects,objects
+        '''
+        self.base=k
         self.objects=obj
         self.morphisms=mor
         self.diff=diff
@@ -75,11 +77,12 @@ class dg_cat():
         the zero vector space).
         '''
         A=self
+        k=A.base
         if {X,Y}<=A.objects:
             if (X,Y) in A.morphisms:
                 return A.morphisms[(X,Y)]
             else:
-                return gvs.graded_vector_space.zero(K)
+                return gvs(k)
         else:
             print("Cannot take homs between ",X," and ",Y," as they do not live in ",A,".")
     def d(self,X,Y):
@@ -97,7 +100,8 @@ class dg_cat():
             if (X,Y) in A.diff:
                 return A.diff[(X,Y)]
             else:
-                return zero_gr_hom(1,A.hom(X,Y),A.hom(X,Y))###
+                return ghomo(1,A.hom(X,Y),A.hom(X,Y))
+            
     def m(self,X,Y,Z):
         '''
         If A=self is a dg-category and X,Y,Z are objects of A,
@@ -113,7 +117,8 @@ class dg_cat():
             if (X,Y,Z) in A.prod:
                 return A.prod[(X,Y,Z)]
             else:
-                return zero_gr_hom(0,A.hom(Y,Z)*A.hom(X,Y),A.hom(X,Z))
+                return ghomo(0,A.hom(Y,Z)*A.hom(X,Y),A.hom(X,Z))
+            
     def yoneda(self,Z):
         '''
         Generates the right Yoneda module associated to the object Z
@@ -171,11 +176,12 @@ class dg_mod():
         '''
         M=self
         A=M.cat
+        k=A.base
         if X in A.objects:
             if X in M.module:
                 return M.module[X]
             else:
-                return gvs.graded_vector_space.zero(K)
+                return gvs(k)
         else:
             print("Module does not exist: ",X," is not in ",A,".")
     def d(self,X):
@@ -194,7 +200,7 @@ class dg_mod():
             if X in M.diff:
                 return M.diff[X]
             else:
-                return zero_gr_hom(1,M.mod(X),M.mod(X))
+                return ghomo(1,M.mod(X),M.mod(X))
     def m(self,X,Y):
         '''
         If M=self is a dg-module over A and X,Y are objects of A,
@@ -211,7 +217,7 @@ class dg_mod():
             if (X,Y) in M.act:
                 return M.act[(X,Y)]
             else:
-                return zero_gr_hom(0,M.mod(Y),A.hom(X,Y))
+                return ghomo(0,M.mod(Y),A.hom(X,Y))
     def __add__(self,other):
         'Direct sum of two dg-modules'
         A=self.cat
