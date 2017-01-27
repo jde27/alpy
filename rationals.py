@@ -84,15 +84,15 @@ def rat_print(x):
 
 def QQ():
     '''Defines an instance of the field of rational numbers'''
-    return ri.field(rat_init,rat_add,rat_sub,rat_mul,rat_div,
+    return ri.Field(rat_init,rat_add,rat_sub,rat_mul,rat_div,
                     rat_inv,rat_eq,rat_num,rat_print,0)
     
 '''
 #Some random tests
 '''
 #Q=QQ()
-#x=ri.number(Q,(5,7))
-#y=ri.number(Q,(7,5))
+#x=ri.Number(Q,(5,7))
+#y=ri.Number(Q,(7,5))
 #z=Q.num(9)
 #u=Q.num(3)
 #v=Q.num(26)
@@ -119,8 +119,8 @@ def QQ():
 #    for j in range(0,3):
 #        print(D[i][j])
 #print(M.dot(M))
-#x=ri.number(Q,(5,7))
-#y=ri.number(Q,(4,9))
+#x=ri.Number(Q,(5,7))
+#y=ri.Number(Q,(4,9))
 #if x-y!=0:
 #    print("Correct")
 #if x-x!=0:

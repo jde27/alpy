@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-### These are some routines involving integers that are required
-### for defining operations involving more general rings/fields,
+# These are some routines involving integers that are required
+# for defining operations involving more general rings/fields,
 
 def extendedEuclideanAlgorithm(a,b):
     '''An implementation of the extended Euclidean algorithm,

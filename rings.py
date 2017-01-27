@@ -15,7 +15,7 @@ def convert(x,func):
             N[s]=convert(t,func)
         return N
 
-class ring():
+class Ring():
     '''Creates a ring R (algebraic structure which allows
     addition, subtraction, multiplication).
     
@@ -53,11 +53,11 @@ class ring():
 
     def num(self,n):
         def converter(x):
-            return number(self,self.num_num(x))
+            return Number(self,self.num_num(x))
         return convert(n,converter)
 
 
-class field(ring):
+class Field(Ring):
     '''Creates a field k (algebraic structure which allows
     addition, multiplication, subtraction, division).
     
@@ -65,7 +65,9 @@ class field(ring):
     class. In addition, it has attributes for dividing and inverting numbers.
 
     Attributes:
+
         num_div [function]: Used by numbers over k to perform division.
+
         num_inv [function]: Used by numbers over k to invert themselves over k.
     '''
     def __init__(self,num_init,num_add,num_sub,num_mul,num_div,
@@ -76,7 +78,7 @@ class field(ring):
         self.num_inv=num_inv
 
         
-class number():
+class Number():
     '''Instantiates a number over a specified field, k.
 
     The methods for adding and multiplying numbers over k (amongst
