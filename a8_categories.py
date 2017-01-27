@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+import rings as ri
+import graded_linear_algebra as gla
+
 ### There is some noticeable code reuse in some of the functions,
 ### for forming certain tensor products (denoted TV below).
 
@@ -10,29 +13,29 @@ class A8Category:
 
     Attributes:
 
-        A.base [ri.field]: Base field over which A is defined.
+        A.base [ri.Field]: Base field over which A is defined.
 
         A.objects [list]: Objects in A.
 
         A.morphisms [dict]:
-            { (X,Y) both in [A.objects] : hom(X,Y) [GradedVectorSpace] }
+            { (X,Y) [tuple of A.objects] : hom(X,Y) [gla.GradedVectorSpace] }
 
         A.operations [dict]:
-            { (X_0,...,X_d) all in [A.objects] :
+            { (X_0,...,X_d) [tuple of A.objects] :
                 \mu^d_A:hom(X_{d-1},X_d) (x) ... (x) hom(X_0,X_1)
-                    ----> hom(X_0,X_d) [GradedLinearMap] }
+                    ----> hom(X_0,X_d) [gla.GradedLinearMap] }
 
     Methods:
 
         A.hom(X,Y):
             Args: X, Y in A.objects
-            Returns: [GradedVectorSpace] A.morphisms[(X,Y)]
+            Returns: [gla.GradedVectorSpace] A.morphisms[(X,Y)]
                 if defined (and zero otherwise -
                 we only store nonzero morphism spaces).
 
         A.mu(X_0,...,X_d):
             Args: X_0,...,X_d in A.objects
-            Returns: [GradedLinearMap] A.operations[(X_0,...,X_d)]
+            Returns: [gla.GradedLinearMap] A.operations[(X_0,...,X_d)]
                 if defined (and zero otherwise -
                 we only store nonzero A_\infty operations).
 
@@ -53,7 +56,7 @@ class A8Category:
             # If we haven't bothered to define morphisms[(X,Y)]
             # then it's the zero vector space, which can be created
             # like this:
-            return GradedVectorSpace(self.base)
+            return gla.GradedVectorSpace(self.base)
 
     def mu(self,*args):
         if args in self.operations:
@@ -62,48 +65,61 @@ class A8Category:
             d=len(args)-1
             # Forming the tensor product
             # TV = hom(X_{d-1},X_d) (x) ... (x) hom(X_0,X_1)
-            TV=self.hom(args[d-1],args[d])
+            TV=copy.deepcopy(self.hom(args[d-1],args[d]))###
             for i in range(1,d):
                 TV=TV.otimes(self.hom(args[d-i-1],arg[d-i]))
             # Return the zero graded linear map
             # hom(X_{d-1},X_d) (x) ... (x) hom(X_0,X_1) --> hom(X_0,X_d)
-            return GradedLinearMap(2-d,TV,self.hom(args[0],args[d]))
+            return gla.GradedLinearMap(2-d,TV,self.hom(args[0],args[d]))
         
-    def yoneda(self,X):
-        '''Wait until we've set up A8Modules'''
+    def yoneda(self,Q):
+        '''Returns the Yoneda module over A associated to Q in A.objects.'''
+        A=self
+        if Q in A.objects:
+            modules={X: A.hom(X,Q)
+                     for X in A.objects if (X,Q) in A.morphisms}
+            operations={word: A.operations(word+(Q,))
+                        for word in A.operations
+                        if word+(Q,) in A.operations}
+            # A.operations is indexed by tuples of objects
+            # so we need to turn Q into a 1-tuple.
+            return A8Module(A,modules,operations)
+        else:
+            print("Yoneda module does not exist: ",Q," is not in ",A,".")
+            return None
 
 class A8Module:
-    '''The class of A_\infty-modules over an A_\infty-category.
+    '''The class of A_\infty-modules over an A_\infty-category A.
 
     Usage: M=A8Module(cat,modules,operations)
 
     Attributes:
 
-        M.cat [A8Category]: The A_\infty-category over which M is a module.
-
-        M.base [ri.field]: The field over which M.cat is defined.
+        M.cat [A8Category]: The A_\infty-category A.
 
         M.modules [dict]:
-            { X in [A.objects] : M(X) [GradedVectorSpace] }
+            { X in [A.objects] : M(X) [gla.GradedVectorSpace] }
     
         M.operations [dict]:
             { (X_0,...,X_{d-1}) in [A.objects] :
-                \mu^d_M: M(X_{d-1}) (x) hom(X_{d-2},X_{d-1}) (x)...
-                        ...(x) hom(X_0,X_1)----> M(X_0) [GradedLinearMap] }
+                \mu^d_M: M(X_{d-1}) (x) hom(X_{d-2},X_{d-1})
+                        (x)...(x) hom(X_0,X_1)----> M(X_0)
+                            [gla.GradedLinearMap] }
     
     Methods:
 
         M.mod(X):
             Args: X in A.objects
-            Returns: [GradedVectorSpace] M.module[X]
+            Returns: [gla.GradedVectorSpace] M.module[X]
                 if defined (and zero otherwise -
                 we only store nonzero vector spaces).
 
         M.mu(X_0,...,X_{d-1}):
             Args: X_0,...,X_{d-1} in A.objects
-            Returns: [GradedLinearMap] M.operations[(X_0,...,X_{d-1})]
-                if defined (and zero otherwise -
-                we only store nonzero A_\infty-module operations).
+            Returns: [gla.GradedLinearMap]
+                M.operations[(X_0,...,X_{d-1})] if defined
+                (and zero otherwise - we only store nonzero
+                A_\infty-module operations).
     
         M.twist(X):
             Args: X in A.objects
@@ -111,7 +127,6 @@ class A8Module:
     '''
     def __init__(self,cat,modules,operations):
         self.cat=cat
-        self.base=cat.base
         self.modules=modules
         self.operations=operations
 
@@ -122,7 +137,7 @@ class A8Module:
             # If we haven't bothered to define module[X]
             # then it's the zero vector space, which can be created
             # like this:
-            return GradedVectorSpace(self.base)
+            return gla.GradedVectorSpace(self.cat.base)
 
     def mu(self,*args):
         if args in self.operations:
@@ -138,7 +153,7 @@ class A8Module:
             # Return the zero graded linear map
             # M(X_{d-1}) (x) hom(X_{d-2},X_{d-1}) (x) ...
             #               ...(x) hom(X_0,X_1) ----> M(X_0)[2-d]
-            return GradedLinearMap(2-d,TV,self.module(args[0]))
+            return gla.GradedLinearMap(2-d,TV,self.module(args[0]))
 
     def .otimes(self,cochain_complex):
         '''Form the tensor product of an A_\infty-module with
@@ -192,14 +207,15 @@ class A8ModuleMap:
 
     t.components [dict]:
         { (X_0,...,X_{d-1}) in A.objects :
-                t^d: M(X_{d-1}) (x) hom(X_{d-2},X_{d-1}) (x)
-                        ...(x) hom(X_0,X_1)----> N(X_0) [GradedLinearMap] }
+                t^d: M(X_{d-1}) (x) hom(X_{d-2},X_{d-1})
+                        (x)...(x) hom(X_0,X_1)----> N(X_0)
+                            [gla.GradedLinearMap] }
 
     Methods:
 
         t.cpt(X_0,...,X_{d-1}):
             Args: X_0,...,X_{d-1} in A.objects
-            Returns: [GradedLinearMap] t.components[(X_0,...,X_{d-1})]
+            Returns: [gla.GradedLinearMap] t.components[(X_0,...,X_{d-1})]
                 if defined (and zero otherwise -
                 we only store nonzero parts of the morphism).
 
@@ -225,7 +241,7 @@ class A8ModuleMap:
             # Return the zero graded linear map
             # M(X_{d-1}) (x) hom(X_{d-2},X_{d-1}) (x) ...
             #               ...(x) hom(X_0,X_1) ----> N(X_0)[1+|t|-d]
-            return GradedLinearMap(1+self.degree-d,TV,
+            return gla.GradedLinearMap(1+self.degree-d,TV,
                                    self.target.module(args[0]))
 
     def cone(self):
@@ -235,12 +251,18 @@ class A8ModuleMap:
         '''
         M,N=self.source,self.target
         A=M.cat
-        zero=A8ModuleMap(1,N,M)
+        # The module for the cone is C(X) = M(X)[1] (+) N(X)
         new_module={X: M.mod(X).shift().oplus(N.mod(X))
                     for X in (M.modules or N.modules)}
+        # The operations are the block matrices
+        # (\mu_M  0    )
+        # (F      \mu_N)
+        # but F and \mu_M need to be suitably shifted
+        # (using rejig_*) to make sense.
+        zero=A8ModuleMap(1,N,M)
         new_operations={word:
-                        GradedLinearMap.block(
+                        gla.GradedLinearMap.block(
                             M.mu(word).rejig_2(),zero.cpt(word),
                             ev.cpt(word).rejig_3(),N.mu(word))}
-        return A8Module(A,mew_module,new_operations)
+        return A8Module(A,new_module,new_operations)
 

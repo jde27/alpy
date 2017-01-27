@@ -104,3 +104,4 @@ class number():
     def __str__(self):
         k=self.base
         return k.num_print(self)
+

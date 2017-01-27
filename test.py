@@ -1,4 +1,6 @@
 #!/usr/bin/python
-D={'A':6,'B':7}
-D.update({'C':8,'D':9})
-print(D)
+D={(1,):6,(2,):7,(1,2):10}
+Q=2
+print({w: D[w+(Q,)]
+       for w in D
+       if w+(Q,) in D})
