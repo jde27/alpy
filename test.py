@@ -4,3 +4,5 @@ Q=2
 print({w: D[w+(Q,)]
        for w in D
        if w+(Q,) in D})
+(a,b,c)=(1,2,3)
+print(a,b,c)

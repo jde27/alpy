@@ -71,7 +71,7 @@ def rat_eq(x,y):
     else:
         return False
 
-def rat_mod(n):
+def rat_num(n):
     '''Sends an integer n to the rational number n/1.'''
     return n,1
 
@@ -84,8 +84,8 @@ def rat_print(x):
 
 def QQ():
     '''Defines an instance of the field of rational numbers'''
-    return ri.field(rat_init,rat_add,rat_sub,rat_mul,rat_div,\
-                    rat_inv,rat_eq,rat_mod,rat_print,0)
+    return ri.field(rat_init,rat_add,rat_sub,rat_mul,rat_div,
+                    rat_inv,rat_eq,rat_num,rat_print,0)
     
 '''
 #Some random tests
@@ -93,9 +93,9 @@ def QQ():
 #Q=QQ()
 #x=ri.number(Q,(5,7))
 #y=ri.number(Q,(7,5))
-#z=Q.mod(9)
-#u=Q.mod(3)
-#v=Q.mod(26)
+#z=Q.num(9)
+#u=Q.num(3)
+#v=Q.num(26)
 #w=v.I()
 #print((y*z*u/v).numerator,"/",(y*z*u/v).denominator)
 #print((x*y).denominator)
@@ -112,7 +112,7 @@ def QQ():
 #print(C)
 #M=np.array([[1,2,3],[2,3,4],[3,4,5]])
 #print(M)
-#C=Q.mod(M)
+#C=Q.num(M)
 #print(C)
 #D=C.dot(C)
 #for i in range(0,3):

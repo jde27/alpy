@@ -20,30 +20,42 @@ class ring():
     addition, subtraction, multiplication).
     
     Attributes:
+
         num_init [function]: Creates numbers over R from input data.
+
         num_add, num_sub, num_mult,
             [functions]: Used by numbers over R to perform addition,
                 subtraction, and multiplication.
+
         num_eq [function]: Used by numbers over R to test their
             equality with others.
-        mod [function]: Turns an integer into a number over R.
+
+        num_num [function]: Turns an integer into a number over R.
+
         char [int]: The characteristic of R.
+
+    Methods:
+
+        num(n):
+            Args: n [int]
+            Returns [number]: Turns n into an element of R.
     '''
-    def __init__(self,num_init,num_add,num_sub,num_mul,\
-                 num_eq,num_mod,num_print,char):
+    def __init__(self,num_init,num_add,num_sub,num_mul,
+                 num_eq,num_num,num_print,char):
         self.num_init=num_init
         self.num_add=num_add
         self.num_sub=num_sub
         self.num_mul=num_mul
         self.num_eq=num_eq
-        self.num_mod=num_mod
+        self.num_num=num_num
         self.num_print=num_print
         self.char=char
 
-    def mod(self,n):
+    def num(self,n):
         def converter(x):
-            return number(self,self.num_mod(x))
+            return number(self,self.num_num(x))
         return convert(n,converter)
+
 
 class field(ring):
     '''Creates a field k (algebraic structure which allows
@@ -56,10 +68,10 @@ class field(ring):
         num_div [function]: Used by numbers over k to perform division.
         num_inv [function]: Used by numbers over k to invert themselves over k.
     '''
-    def __init__(self,num_init,num_add,num_sub,num_mul,num_div,\
-                 num_inv,num_eq,num_mod,num_print,char):
-        super().__init__(num_init,num_add,num_sub,num_mul,\
-                       num_eq,num_mod,num_print,char)
+    def __init__(self,num_init,num_add,num_sub,num_mul,num_div,
+                 num_inv,num_eq,num_num,num_print,char):
+        super().__init__(num_init,num_add,num_sub,num_mul,
+                         num_eq,num_num,num_print,char)
         self.num_div=num_div
         self.num_inv=num_inv
 

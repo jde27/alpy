@@ -1,6 +1,19 @@
 #!/usr/bin/python
 
+import numpy as np
 import rings as ri
+
+'''In this module, we define the following categories:
+
+    GradedVectorSpace
+    GradedLinearMap
+    CochainComplex
+
+and the following functions:
+
+    find_nonzero(array) [used by rank_nullity()]
+    rank_nullity(array) [used by GradedLinearMap.ker_im()]
+'''
 
 class GradedVectorSpace:
     '''The class of graded vector spaces V=\bigosum_n V^n.
@@ -37,6 +50,11 @@ class GradedVectorSpace:
             Returns [GradedLinearMap]: The identity map V-->V.
                     The name "eye" is a bit silly, but consistent
                     with NumPy.
+
+        V.shift(m=1):
+            Args: m [int] (m=1 by default)
+            Returns [GradedVectorSpace]:
+                The shift of V by m, where V[m]^d = V^{m+d}
     '''
 
     def __init__(self,base):
@@ -50,23 +68,52 @@ class GradedVectorSpace:
         else:
             return 0
 
+    def oplus(self,other):
+        '''Returns the direct sum of two graded vector spaces.'''
+        (V,W)=(self,other)
+        K=self.base
+        D=GradedVectorSpace(K)
+        D.graded_dim=V.graded_dim.copy()
+        # Use of .copy() avoids shared references
+        for n in W.graded_dim:
+            if n in D.graded_map:
+                D.graded_map[n]+=W.gr_dim(n)
+            else:
+                D.graded_map[n]=W.gr_dim(n)
+        return D
+
+    def __add__(self,other):
+        return self.oplus(other)
+    
+    def otimes(self,other):
+        '''Returns the tensor product of two graded vector spaces.'''
+        (V,W)=(self,other)
+        K=self.base
+        T=GradedVectorSpace(K)
+        for p,q in V.graded_dim,W.graded_dim:
+            if p+q in T.graded_dim:
+                T.graded_dim[p+q]+=(V.gr_dim(p))*(W.gr_dim(q))
+            else:
+                T.graded_dim[p+q]=(V.gr_dim(p))*(W.gr_dim(q))
+        return T
+    
     def eye(self):
         '''Returns the identity map.'''
-        k=self.base
+        K=self.base
         identity=GradedLinearMap(0,self,self)
         for n in self.graded_dim:
-            identity.level[n]=k.num(np.eye(self.graded_dim[n]))
+            identity.graded_map[n]=K.num(np.eye(self.graded_dim[n]))
         return identity
     
-    def shift(self,n=1):
+    def shift(self,m=1):
         '''Returns a copy of the graded vector space
-        shifted in degree by n (n=1 by default).
+        shifted in degree by m (m=1 by default).
 
-        Recall that V[n]^d=V^{n+d}.
+        Recall that V[m]^d=V^{m+d}.
         '''
         shifted_space=GradedVectorSpace(self.base)
         for n in self.graded_dim:
-            shifted_space.graded_dim[n-1]=self.graded_dim[n]
+            shifted_space.graded_dim[n-m]=self.graded_dim[n]
         return shifted_space
         
 class GradedLinearMap:
@@ -81,7 +128,7 @@ class GradedLinearMap:
         F.source, F.target [GradedVectorSpaces]:
             The source and target of F.
 
-        F.level [dict]:
+        F.graded_map [dict]:
             { n [int] : F^n: V^n-->W^{n+d} [np.ndarray] }
                 (The entries of F^n should be numbers in the field
                 F.source.base).
@@ -90,10 +137,17 @@ class GradedLinearMap:
 
         F.gr_map(n):
             Args: n [int]
-            Returns: The nth graded level F.level[n], or a zero
-                    matrix of appropriate size if n is not
-                    in F.level.
+            Returns [GradedLinearMap]: The nth graded graded map
+                    F.graded_map[n], or a zero matrix of appropriate size
+                    if n is not in F.graded_map.
+
+        F+G:
+            Returns: The sum of linear maps V-->W.
     
+        F.oplus(G):
+            Args: G [GradedLinearMap]
+            Returns [GradedLinearMap]: The direct sum of F and G.
+
         F.otimes(G):
             Args: G [GradedLinearMap]
             Returns [GradedLinearMap]:
@@ -102,11 +156,19 @@ class GradedLinearMap:
         F.koszulify(m=1):
             Args: m [int] (m=1 by default)
             Returns [GradedLinearMap]:
-                The graded linear map K with K^n = (-1)**(m*(n-1))) F^n
+                The graded linear map G with G^n = (-1)**(m*(n-1))) F^n
     
         F.rejig_1(m), F.rejig_2(m), F.rejig_3(m):
             Args: m [int]
-            Returns:##############
+            Returns [GradedLinearMap]: Implements the
+                canonical isomorphisms:
+                    hom(A,B)[k]-->hom(A,B[k]) (rejig_1)
+                    hom(M,N)-->hom(M[m],N[m]) (rejig_2)
+                    hom(M,N)-->hom(M[m],N)[m] (rejig_3)
+    
+        F.ker_im()
+            Returns a tuple (V,W) [GradedVectorSpace]:
+                The kernel/image of F.
 
     Class Methods:
 
@@ -121,42 +183,80 @@ class GradedLinearMap:
         self.degree=degree
         self.source=source
         self.target=target
-        self.level={}
+        self.graded_map={}
         
     def gr_map(self,n):
-        '''A safe way of accessing the graded levels F^n.'''
-        k=self.source.base
-        if n in self.level:
-            # The graded levels are mutable, so
+        '''A safe way of accessing the graded maps F^n.'''
+        K=self.source.base
+        if n in self.graded_map:
+            # The graded maps are mutable, so
             # we return a copy - one safety feature!
-            return self.level[n].copy()
+            return self.graded_map[n].copy()
         else:
-            # If the graded level is not stored
+            # If the graded map is not stored
             # we return zero - another safety feature!
             d=self.degree
-            d1,d2=self.source.gr_dim(n),self.target.gr_dim(n+d)
-            return k.num(np.zeros(shape=d2,d1))
+            (d1,d2)=(self.source.gr_dim(n),self.target.gr_dim(n+d))
+            return K.num(np.zeros(shape=d2,d1))
+
+    def __add__(self,other):
+        '''Returns the usual sum of two graded linear maps V-->W.'''
+        (F,G)=(self,other)
+        (d1,d2)=(self.degree,other.degree)
+        (V1,W1)=(F.source,F.target)
+        (V2,W2)=(G.source,G.target)
+        H=GradedLinearMap(d1,V1,W1)
+        if V1==V2 and W1==W2 and d1==d2:
+            for n in (F.graded_map or G.graded_map):
+                H.graded_map[n]=F.gr_map(n)+G.gr_map(n)
+        else:
+            print("Cannot add linear maps of different degree "\
+                  "or between different spaces.")
+            return None
+        
+    def oplus(self,other):
+        '''Returns the direct sum of two graded linear maps.'''
+        (V1,V2)=(self.source,other.source)
+        (W1,W2)=(self.target,other.target)
+        d=self.degree
+        B=GradedLinearMap(d,V2,W1)
+        C=GradedLinearMap(d,V1,W2)
+        return GradedLinearMap.block(self,B,C,other)
 
     def otimes(self,other):
-        ###
-        
+        '''Returns the tensor (Kronecker) product of linear maps.'''
+        (F,G)=(self,other)
+        (d1,d2)=(F.degree,G.degree)
+        (V1,V2)=(F.source,G.source)
+        (W1,W2)=(F.target,G.target)
+        H=GradedLinearMap(d1+d2,V1.otimes(V2),W1.otimes(W2))
+        for p,q in F.graded_map,G.graded_map:
+            (A,B)=(F.gr_map(p),G.gr_map(q))
+            C=np.asarray(np.kron(A,B))
+            if p+q in H.graded_map:
+                H.graded_map[p+q]=H.graded_map[p+q].oplus(C)
+            else:
+                H.graded_map[p+q]=C
+        return H
+                
     def koszulify(m=1):
+        '''Implement a Koszul sign-change.'''
         new_map=GradedLinearMap(self.degree,self.source,self.target)
-        for n in self.level:
-            new_map.level[n]=self.base.num((-1)**(m*(n-1)))*self.gr_map(n)
-            # We use gr_map to access self.level safely
+        for n in self.graded_map:
+            new_map.graded_map[n]=self.base.num((-1)**(m*(n-1)))*self.gr_map(n)
+            # We use gr_map to access self.graded_map safely
             ### Hopefully np.arrays can cope with this
-        return new_ghomo
+        return new_map
 
     def rejig_1(m=1):
         '''This implements the canonical isomorphism
         hom(M,N)[m] --> hom(M,N[m])
         '''
-        d,M,N=self.degree,self.source,self,target
+        (d,M,N)=(self.degree,self.source,self,target)
         new_map=GradedLinearMap(d-m,M,N.shift(m))
-        for n in self.level:
-            new_map.level[n]=self.gr_map(n)
-            # We use gr_map to access self.level safely
+        for n in self.graded_map:
+            new_map.graded_map[n]=self.gr_map(n)
+            # We use gr_map to access self.graded_map safely
         return new_map
     
     def rejig_2(m=1):
@@ -164,25 +264,62 @@ class GradedLinearMap:
         hom(M,N)[d]-->hom(M[m],N[m])[d]
         f--------->((-1)**(m(d-1))) f
         '''
-        d,M,N=self.degree,self.source,self,target
+        (d,M,N)=(self.degree,self.source,self.target)
         new_map=GradedLinearMap(d,M.shift(n),N.shift(n))
-        for n in self.levels:
-            new_map.level[n]=M.base.num((-1)**(m*(d-1)))*self.gr_maps(n)
-            # We use gr_maps to access self.level safely
+        for n in self.graded_maps:
+            new_map.graded_map[n]=M.base.num((-1)**(m*(d-1)))*self.gr_maps(n)
+            # We use gr_maps to access self.graded_map safely
             ### again, we need to make sure ndarrays can cope with this
         return new_map
 
     def rejig_3(m=1):
         '''This implements the canonical isomorphism
-        hom(M,N)-->hom(M[k],N)[k]
+        hom(M,N)-->hom(M[m],N)[m]
         Remember there are two different ways to implement this
         which differ by a sign - the other is rejig_2(rejig_1(self,-n),n)
         '''
         return rejig_1(rejig_2(self,m),-m)
 
+    def ker_im(self):
+        '''Find the kernel and image of graded linear map.'''
+        F=self
+        K=self.source.base
+        kernel=GradedVectorSpace(K)
+        image=GradedVectorSpace(K)
+        for n in F.graded_map:
+            M=F.gr_map(n)
+            rank,nullity=rank_nullity(M)
+            kernel.graded_dim[n]=nullity
+            image.graded_dim[n]=rank
+        return kernel,image
+    
     @classmethod
     def block(cls,A,B,C,D):
-        ###
+        '''Returns a block matrix from four compatible
+        graded homomorphisms.'''
+        (d,d_other)=(A.degree,(B.degree,C.degree,D.degree))
+        degree_test=(x==d for x in d_other)
+        (V1,W1)=(A.source,A.target)
+        (V2,W2)=(D.source,D.target)
+        (V1_test,W2_test)=(C.source,C.target)
+        (V2_test,W1_test)=(B.source,B.target)
+        space_test=(V1==V1_test and V2==V2_test and \
+                     W1==W1_test and W2==W2_test)
+        if degree_test and space_test:
+            block_map=GradedLinearMap(d,A.source+D.source,A.target+D.target)
+            for n in (A.graded_map or B.graded_map
+                      or C.graded_map or D.graded_map):
+                (a,b,c,d)=(A.gr_map(n),B.gr_map(n),C.gr_map(n),D.gr_map(n))
+                block_map[n]=np.asarray(np.bmat([[a,b],[c,d]]))
+            return block_map
+        else:
+            if not space_test:
+                print("Cannot take direct sum of homomorphisms: sources "\
+                      "and targets are incompatible.")
+            else:
+                print("Cannot take direct sum of homomorphisms: degrees "\
+                      "are incompatible.")
+            return None
     
 class CochainComplex:
     '''The class of cochain complexes.
@@ -197,10 +334,75 @@ class CochainComplex:
             This should have:   .degree=1,
                                 .source=Z.cochains
                                 .target=Z.cochains
+    
+    Methods:
+        Z.cohomology():
+            Returns [GradedVectorSpace]:
+                The cohomology (ker(d)/im(d)) of Z.
+ 
     '''
     def __init__(self,cochains,differential):
         self.cochains=cochains
         self.differential=differential
     
     def cohomology(self):
-        ###
+        '''Computes cohomology of a cochain complex.'''
+        d=self.differential
+        K=self.cochains.base
+        kernel,image=d.ker_im()
+        coh=GradedVectorSpace(K)
+        for n in kernel.graded_dim:
+            coh.graded_dim=kernel.gr_dim(n)-image.gr_dim(n)
+            if coh.graded_dim[n]<0:
+                print("Cohomology seems to be negative dimensional...")
+        return coh
+
+
+def find_nonzero(A):
+    '''A function which finds the index of the first nonzero
+    entry in an array
+
+    Input: A [array]
+    
+    Output: [bool], [int], [entry of A]
+    
+    If there is a nonzero entry in position x,
+    find_nonzero returns True, x, A[x]
+    otherwise, it returns False, 0, 0
+    '''
+    ctr=0
+    while ctr<A.size:
+        if A[ctr]!=0:
+            return True,ctr,A[ctr]
+        else:
+            ctr+=1
+    return False,0,0
+    
+def rank_nullity(A):
+    '''Computes the rank and nullity of a 2-d np.array A
+    via Gaussian elimination over the field of definition'''
+    # This algorithm changes the input matrix drastically,
+    # so we start by warding against mutability backwash:
+    B=A.copy()
+    # We start with a guess of the rank and nullity,
+    # setting them to be the biggest they could possibly be.
+    rows,cols=B.shape
+    rank,nullity=rows,cols
+    for n in range(0,rows):
+        # We look for the first nonzero element in row n
+        found,s,t=array_manipulations.find_nonzero(B[n])
+        if found:
+            # If there is a nonzero element we know the
+            # nullity is at least 1 less than our previous guess.
+            nullity-=1
+            # We now clear column number s by subtracting a suitable
+            # multiple of row n from all subsequent rows.
+            for x in range(n+1,rows):
+                c=B[x,s]/t
+                for y in range(0,cols):
+                    B[x,y]-=c*B[n,y]
+        else:
+            # If we find an empty row, we know the rank is
+            # at least 1 less than our previous guess.
+            rank-=1
+    return rank,nullity
