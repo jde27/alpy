@@ -293,12 +293,40 @@ class ghomo():
             else:
                 print("ghomo requires final argument ",\
                       "to be of type np.array or homomomorphism.")
-                
-    def shift(self,n=1):
-        shifted_ghomo=ghomo(self.degree,self.source.shift(n),self.target)
-        for m in self.gps:
-            shifted_ghomo.gps[m-n]=self.gps[m]
-        return shifted_ghomo
+
+    def rejig_1(self,n=1):
+        '''This implements the canonical isomorphism
+        hom(M,N)[n] --> hom(M,N[n])
+        '''
+        new_ghomo=ghomo(self.degree-n,self.source,self.target.shift(n))
+        new_ghomo.gps=self.gps
+        return new_ghomo
+    
+    def rejig_2(self,n=1):
+        '''This implements the canonical isomorphism
+        hom(M,N)[d]-->hom(M[n],N[n])[d]
+        f--------->((-1)**(n(d-1))) f
+        '''
+        new_ghomo=ghomo(self.degree,self.source.shift(n),self.target.shift(n))
+        for n in self.gps:
+            new_ghomo.gps[n]=self.base.mod((-1)**(n*(self.degree-1)))*self.gps[n]
+            # again, we need to make sure ndarrays can cope with this
+        return new_ghomo
+    
+    def rejig_3(self,n=1):
+        '''This implements the canonical isomorphism
+        hom(M,N)-->hom(M[k],N)[k]
+        Remember there are two different ways to implement this
+        which differ by a sign - the other is rejig_2(rejig_1(self,-n),n)
+        '''
+        return rejig_1(rejig_2(self,n),-n)
+
+    def koszulify(self,m=1):
+        new_ghomo=ghomo(self.degree,self.source,self.target)
+        for n in self.gps:
+            new_ghomo.gps[n]=self.base.mod((-1)**(m*(n-1)))*self.gps[n]
+            # Hopefully np.arrays can cope with this
+        return new_ghomo
     
     @classmethod
     def block(cls,A,B,C,D):

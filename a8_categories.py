@@ -166,14 +166,17 @@ class A8Module:
         
     def twist(self,Q):
         A=self.cat
+        # We first form the tensor product M(Q) (x) yoneda(Q)
         Y=A.yoneda(Q)
         cochain_complex=self.cpx(Q)
-        T=Y.otimes(cochain_complex)### This should get as far as 1.
-        #Should be:
-        # 1. form the tensor product T = M(Q) (x) yoneda(Q)
-        # 2. form the pre-module homomorphism ev: M(Q) (x) yoneda(Q) --> M
-        # 3. take the cone on ev
-        
+        T=Y.otimes(cochain_complex)
+        # We then form the canonical evaluation morphism
+        # ev^d(c(x)b,a_{d-1},...,a_1) = \mu^{d+1}_M(c,b,a_{d-1},...,a_1)
+        components={word: self.m(word+Q)\
+                    for word in self.operations}
+        ev=A8ModuleMap(T,self,components)
+        # Finally, we return the cone on ev
+        return cone(ev)
 
 class A8ModuleMap:
     '''The class of pre-module homomorphisms t: M-->N between
@@ -222,7 +225,7 @@ class A8ModuleMap:
             # Return the zero graded linear map
             # M(X_{d-1}) (x) hom(X_{d-2},X_{d-1}) (x) ...
             #               ...(x) hom(X_0,X_1) ----> N(X_0)[1+|t|-d]
-            return GradedLinearMap(1+self.degree-d,TV,\
+            return GradedLinearMap(1+self.degree-d,TV,
                                    self.target.module(args[0]))
 
     def cone(self):
@@ -232,6 +235,12 @@ class A8ModuleMap:
         '''
         M,N=self.source,self.target
         A=M.cat
-        C={X: M.mod(X).shift().oplus(N.mod(X))\
-           for X in (M.modules or N.modules)}
-        ### More to do here
+        zero=A8ModuleMap(1,N,M)
+        new_module={X: M.mod(X).shift().oplus(N.mod(X))
+                    for X in (M.modules or N.modules)}
+        new_operations={word:
+                        GradedLinearMap.block(
+                            M.mu(word).rejig_2(),zero.cpt(word),
+                            ev.cpt(word).rejig_3(),N.mu(word))}
+        return A8Module(A,mew_module,new_operations)
+
