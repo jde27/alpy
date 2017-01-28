@@ -62,14 +62,21 @@ def rat_inv(x):
 
 def rat_eq(x,y):
     '''Tests equality of rational numbers'''
-    if x.numerator==y.numerator and x.denominator==y.denominator:
-        # Since rational numbers are stored with their numerator and
-        # denominator coprime and the sign in the numerator,
-        # equality holds iff equality holds for numerator and
-        # denominator separately.
-        return True
+    if type(y) is ri.Number:
+        if x.numerator==y.numerator and x.denominator==y.denominator:
+            # Since rational numbers are stored with their numerator and
+            # denominator coprime and the sign in the numerator,
+            # equality holds iff equality holds for numerator and
+            # denominator separately.
+            return True
+        else:
+            return False
     else:
-        return False
+        # We may be comparing a rational number to an integer:
+        if x.numerator==y and x.denominator==1:
+            return True
+        else:
+            return False
 
 def rat_num(n):
     '''Sends an integer n to the rational number n/1.'''

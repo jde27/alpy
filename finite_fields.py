@@ -44,7 +44,11 @@ def FF(p):
     
     def ff_eq(x,y):
         '''Tests equality of numbers over Z/p'''
-        a,b=x.value,y.value
+        a=x.value
+        if type(y) is ri.Number:
+            b=y.value
+        else:
+            b=y
         if a%p==b%p:
             return True
         else:

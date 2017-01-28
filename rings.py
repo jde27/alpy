@@ -2,24 +2,28 @@
 
 import numpy as np
 
-def convert(x,func):
+def convert(x,func1,func2):
     '''A function to convert (arrays of) integers
     to (arrays of) numbers in a ring.
 
     If convert() eats an array [a,b,...], then it outputs the
     array [convert(a),convert(b),...].
-    If it eats anything other than an array, it tries to convert
-    it into a number in a ring using func.
+    If it eats anything other than an array or a Number,
+    it tries to convert it into a Number using func1.
+    If it happens to eat a Number, it applies func2 (this is
+    used, for example, to multiply all Number entries by -1
+    in the function
+    graded_linear_algebra.GradedLinearMap.koszulify().
     '''
     if type(x) is not np.ndarray:
         if type(x) is not Number:
-            return func(x)
+            return func1(x)
         else:
-            return x
+            return func2(x)
     else:
         N=np.empty(shape=x.shape,dtype='object')
         for s,t in enumerate(x):
-            N[s]=convert(t,func)
+            N[s]=convert(t,func1,func2)
         return N
 
 class Ring():
@@ -64,7 +68,9 @@ class Ring():
         '''
         def converter(x):
             return Number(self,self.num_num(x))
-        return convert(n,converter)
+        def identity(y):
+            return y
+        return convert(n,converter,identity)
 
 
 class Field(Ring):
@@ -111,7 +117,15 @@ class Number():
     
     def __mul__(self,other):
         k=self.base
-        return Number(k,k.num_mul(self,other))
+        if type(other) is np.ndarray:
+            # Allow for scalar multiplication of matrices
+            def converter(x):
+                return self*k.num(x)
+            def scalar(y):
+                return self*y
+            return convert(other,converter,scalar)
+        else:
+            return Number(k,k.num_mul(self,other))
 
     def __truediv__(self,other):
         k=self.base
