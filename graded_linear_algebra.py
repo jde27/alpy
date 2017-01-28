@@ -2,6 +2,7 @@
 
 import numpy as np
 import rings as ri
+import rationals as rat
 
 '''In this module, we define the following categories:
 
@@ -55,11 +56,15 @@ class GradedVectorSpace:
             Args: m [int] (m=1 by default)
             Returns [GradedVectorSpace]:
                 The shift of V by m, where V[m]^d = V^{m+d}
+    
+        print(V): Prints V in the form
+                    { n : dim(V^n) }
     '''
 
     def __init__(self,base):
         self.base=base
-
+        self.graded_dim={}
+        
     def gr_dim(self,n):
         '''A safe way of accessing the graded dimensions of V.
         This will return zero if nothing is stored.'''
@@ -76,10 +81,10 @@ class GradedVectorSpace:
         D.graded_dim=V.graded_dim.copy()
         # Use of .copy() avoids shared references
         for n in W.graded_dim:
-            if n in D.graded_map:
-                D.graded_map[n]+=W.gr_dim(n)
+            if n in D.graded_dim:
+                D.graded_dim[n]+=W.gr_dim(n)
             else:
-                D.graded_map[n]=W.gr_dim(n)
+                D.graded_dim[n]=W.gr_dim(n)
         return D
 
     def __add__(self,other):
@@ -90,18 +95,19 @@ class GradedVectorSpace:
         (V,W)=(self,other)
         K=self.base
         T=GradedVectorSpace(K)
-        for p,q in V.graded_dim,W.graded_dim:
-            if p+q in T.graded_dim:
-                T.graded_dim[p+q]+=(V.gr_dim(p))*(W.gr_dim(q))
-            else:
-                T.graded_dim[p+q]=(V.gr_dim(p))*(W.gr_dim(q))
+        for p in V.graded_dim:
+            for q in W.graded_dim:
+                if p+q in T.graded_dim:
+                    T.graded_dim[p+q]+=(V.gr_dim(p))*(W.gr_dim(q))
+                else:
+                    T.graded_dim[p+q]=(V.gr_dim(p))*(W.gr_dim(q))
         return T
     
     def eye(self):
         '''Returns the identity map.'''
         K=self.base
         identity=GradedLinearMap(0,self,self)
-        for n in self.graded_dim:
+        for n in self.graded_dim:### Currently returning a float64 array
             identity.graded_map[n]=K.num(np.eye(self.graded_dim[n]))
         return identity
     
@@ -116,6 +122,14 @@ class GradedVectorSpace:
             shifted_space.graded_dim[n-m]=self.graded_dim[n]
         return shifted_space
         
+    def __str__(self):
+        return "%s" % str(self.graded_dim)
+
+Q=rat.QQ()
+V=GradedVectorSpace(Q)
+V.graded_dim={0:1,2:1}
+print(V)
+    
 class GradedLinearMap:
     '''The class of graded linear maps F^n:V^n-->W^{n+d} of degree d.
 
@@ -143,6 +157,9 @@ class GradedLinearMap:
 
         F+G:
             Returns: The sum of linear maps V-->W.
+    
+        F*G:
+            Returns: The composition of linear maps.
     
         F.oplus(G):
             Args: G [GradedLinearMap]
@@ -197,7 +214,7 @@ class GradedLinearMap:
             # we return zero - another safety feature!
             d=self.degree
             (d1,d2)=(self.source.gr_dim(n),self.target.gr_dim(n+d))
-            return K.num(np.zeros(shape=d2,d1))
+            return K.num(np.zeros(shape=(d2,d1)))
 
     def __add__(self,other):
         '''Returns the usual sum of two graded linear maps V-->W.'''
@@ -213,6 +230,20 @@ class GradedLinearMap:
             print("Cannot add linear maps of different degree "\
                   "or between different spaces.")
             return None
+        
+    def __mul__(self,other):
+        '''Returns the composition of two graded linear maps.
+
+        The ordering is as follows:
+        G:U-->V, F:V-->W gives F*G=H:U-->W
+        '''
+        (F,G)=(self,other)
+        (U,W)=(G.source,F.target)
+        (d1,d2)=(G.degree,F.degree)
+        H=GradedLinearMap(d1+d2,U,W)
+        for n in G.graded_dim:
+            H.graded_map[n]=F.gr_map(n+d1).dot(G.gr_map(n))
+        return H
         
     def oplus(self,other):
         '''Returns the direct sum of two graded linear maps.'''
@@ -230,13 +261,14 @@ class GradedLinearMap:
         (V1,V2)=(F.source,G.source)
         (W1,W2)=(F.target,G.target)
         H=GradedLinearMap(d1+d2,V1.otimes(V2),W1.otimes(W2))
-        for p,q in F.graded_map,G.graded_map:
-            (A,B)=(F.gr_map(p),G.gr_map(q))
-            C=np.asarray(np.kron(A,B))
-            if p+q in H.graded_map:
-                H.graded_map[p+q]=H.graded_map[p+q].oplus(C)
-            else:
-                H.graded_map[p+q]=C
+        for p in F.graded_map:
+            for q in G.graded_map:
+                (A,B)=(F.gr_map(p),G.gr_map(q))
+                C=np.asarray(np.kron(A,B))
+                if p+q in H.graded_map:
+                    H.graded_map[p+q]=H.graded_map[p+q].oplus(C)
+                else:
+                    H.graded_map[p+q]=C
         return H
                 
     def koszulify(m=1):

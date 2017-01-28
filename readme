@@ -1,0 +1,9 @@
+
+
+
+                rings ----------------------> graded_linear_algebra
+		|   |__________________            |
+		|                      |________   |
+		V                               V  V
+arithmetic --> rationals, finite_fields       a8_categories
+

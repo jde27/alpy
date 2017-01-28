@@ -13,36 +13,39 @@ def FF(p):
         
     def ff_add(x,y):
         '''Addition for numbers over Z/p'''
-        return (x+y)%p
+        a,b=x.value,y.value
+        return (a+b)%p
     
     def ff_sub(x,y):
         '''Subtraction for numbers over Z/p'''
-        return (x-y)%p
+        a,b=x.value,y.value
+        return (a-b)%p
     
     def ff_mul(x,y):
         '''Multiplication for numbers over Z/p'''
-        return (x*y)%p
+        a,b=x.value,y.value
+        return (a*b)%p
     
     def ff_div(x,y):
         '''Division for numbers over Z/p'''
-        if y%p!=0:
-            return x*ff_inv(y)
-        else:
-            print("Can't divide by zero!")
-            return None
-        
+        z=ff_inv(y)
+        a=x.value
+        return (a*z)%p
+    
     def ff_inv(x):
         '''Inversion of numbers over Z/p'''
-        if x%p!=0:
-            (x,y,g)=ar.extendedEuclideanAlgorithm(p,x%p)
-            return g*y
+        a=x.value
+        if a%p!=0:
+            (s,t,g)=ar.extendedEuclideanAlgorithm(p,a%p)
+            return g*t
         else:
             print("Can't invert zero!")
             return None
     
     def ff_eq(x,y):
         '''Tests equality of numbers over Z/p'''
-        if x%p==y%p:
+        a,b=x.value,y.value
+        if a%p==b%p:
             return True
         else:
             return False
@@ -53,7 +56,8 @@ def FF(p):
     
     def ff_print(x):
         '''Prints a number over Z/p.'''
-        return str(x%p)
+        a=x.value
+        return str(a%p)
 
     return ri.Field(ff_init,ff_add,ff_sub,ff_mul,ff_div,
                     ff_inv,ff_eq,ff_num,ff_print,p)

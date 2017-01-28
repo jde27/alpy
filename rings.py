@@ -3,9 +3,16 @@
 import numpy as np
 
 def convert(x,func):
-    '''A function to convert integers to numbers over a field.'''
+    '''A function to convert (arrays of) integers
+    to (arrays of) numbers in a ring.
+
+    If convert() eats an array [a,b,...], then it outputs the
+    array [convert(a),convert(b),...].
+    If it eats anything other than an array, it tries to convert
+    it into a number in a ring using func.
+    '''
     if type(x) is not np.ndarray:
-        if type(x) is not number:
+        if type(x) is not Number:
             return func(x)
         else:
             return x
@@ -52,6 +59,9 @@ class Ring():
         self.char=char
 
     def num(self,n):
+        '''This function converts integers (or np.ndarrays of integers)
+        into ring elements using the function specified by num_num.
+        '''
         def converter(x):
             return Number(self,self.num_num(x))
         return convert(n,converter)
@@ -93,23 +103,23 @@ class Number():
 
     def __add__(self,other):
         k=self.base
-        return number(k,k.num_add(self,other))
+        return Number(k,k.num_add(self,other))
 
     def __sub__(self,other):
         k=self.base
-        return number(k,k.num_sub(self,other))
+        return Number(k,k.num_sub(self,other))
     
     def __mul__(self,other):
         k=self.base
-        return number(k,k.num_mul(self,other))
+        return Number(k,k.num_mul(self,other))
 
     def __truediv__(self,other):
         k=self.base
-        return number(k,k.num_div(self,other))
+        return Number(k,k.num_div(self,other))
 
     def I(self):
         k=self.base
-        return number(k,k.num_inv(self))
+        return Number(k,k.num_inv(self))
 
     def __eq__(self,other):
         k=self.base

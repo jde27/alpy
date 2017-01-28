@@ -78,7 +78,7 @@ class A8Category:
             d=len(args)-1
             # Forming the tensor product
             # TV = hom(X_{d-1},X_d) (x) ... (x) hom(X_0,X_1)
-            TV=self.hom(args[d-1],args[d])###
+            TV=self.hom(args[d-1],args[d])
             for i in range(1,d):
                 TV=TV.otimes(self.hom(args[d-i-1],arg[d-i]))
             # Return the zero graded linear map
