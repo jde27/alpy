@@ -480,3 +480,6 @@ def rank_nullity(A):
             # at least 1 less than our previous guess.
             rank-=1
     return rank,nullity
+
+
+
