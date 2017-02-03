@@ -319,12 +319,20 @@ class A8ModuleMap:
         # (using rejig_*) to make sense.
         L=M.shift()
         zero=A8ModuleMap(1,N,L,{})
+        for word in M.operations:
+            print("M",word)
+        for word in N.operations:
+            print("N",word)
+        for word in self.components:
+            print("ev",word)
+        for word in self.components or M.operations or N.operations:
+            print("all",word)
+        ###Seems to be a problem with "OR"!!!
         new_operations={word:
                         gla.GradedLinearMap.block(
                             M.mu(word).rejig_2(),zero.cpt(word),
                             self.cpt(word).rejig_3(),N.mu(word))
-                        for word in (self.components or
-                                     M.operations or N.operations)}
+                        for word in self.components or M.operations or N.operations}
         return A8Module(A,new_module,new_operations)
 
 class DynkinGraph():

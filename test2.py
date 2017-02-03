@@ -10,6 +10,20 @@ import a8_categories as cat
 '''print("Testing A8Category")'''
 K=FF.FF(2)
 A=cat.DynkinGraph.BP(3,2,K,2)
+M=A.yoneda(1)
+N=A.yoneda(2)
+def disp(M):
+    print(M.cpx(1).cohomology())
+    print(M.cpx(2).cohomology())
+E=N.twist(1)
+print(E.mod(1))
+print(E.mod(2))
+print(E.operations)
+disp(E)
+#disp(N)
+#disp(N.twist(1).twist(1))
+
+
 '''print(A.objects)
 for X in A.objects:
     for Y in A.objects:
@@ -53,15 +67,6 @@ print("Testing A8Modules")'''
 '''print(M1.cpx(1).cohomology())
 print(M1.cpx(2).cohomology())'''
 
-M=A.yoneda(1)
-N=A.yoneda(2)
-def disp(M):
-    print(M.cpx(1).cohomology())
-    print(M.cpx(2).cohomology())
-
-disp(N)
-disp(N.twist(1))
-disp(N.twist(1).twist(1))
 '''
 print("The sphere 1")
 disp(M)
