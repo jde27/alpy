@@ -89,13 +89,17 @@ class A8Category:
         '''Returns the Yoneda module over A associated to Q in A.objects.'''
         A=self
         if Q in A.objects:
+            '''If M=Yoneda(Q) then M(X)=hom(X,Q)'''
             modules={X: A.hom(X,Q)
                      for X in A.objects if (X,Q) in A.morphisms}
-            operations={word: A.mu(word)
+            '''The operations   M(X) (x) hom(X',X) (x) ...
+            are precisely the operations \mu_A on
+            hom(X,Q) (x) hom(X',X) (x) ...
+            However, we now index them by (...,X',X)
+            instead of (...,X',X,Q)'''
+            operations={word[:-1]: A.mu(word)
                         for word in A.operations
                         if word[-1]==Q}
-            # A.operations is indexed by tuples of objects
-            # so we need to turn Q into a 1-tuple.
             return A8Module(A,modules,operations)
         else:
             print("Yoneda module does not exist: ",Q," is not in ",A,".")
