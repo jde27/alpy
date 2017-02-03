@@ -3,9 +3,14 @@
 import rings as ri
 import rationals as QQ
 import graded_linear_algebra as gla
+import numpy as np
 
 K=QQ.QQ()
-V=gla.sph(K,2)
-F=gla.sph_op(V)
-(V.eye().otimes(F)).verify()
-print({p+q for p in [0,2] for q in [0,2,4]})
+Z=gla.GradedVectorSpace(K)
+Z.graded_dim={0:1,1:1,2:1}
+V=gla.GradedVectorSpace(K)
+V.graded_dim={2:1}
+W=gla.sph(K,2)
+F=gla.GradedLinearMap(0,V,W)
+F.graded_map={2:K.num(np.array([[1]]))}
+Z.eye().otimes(F).verify()

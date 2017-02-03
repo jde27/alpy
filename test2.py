@@ -35,15 +35,24 @@ M=A.yoneda(1)
 #M4=M2.twist(1)
 '''for n in M.modules:
     print(n,M.modules[n])'''
-M1=M.twist(1)
-print(M1)
 '''for n in M1.modules:
     print(n,M1.modules[n])'''
 #print(M1.operations)
 #print(M1.mu((2,)))
-#print(M1.cpx(1).cohomology())
-#print(M1.cpx(2).cohomology())
-#M2=M.twist(2)
+#print("The twist of 1 around 1")
+#M1=M.twist(1)
+'''print(M1.cpx(1).cohomology())
+print(M1.cpx(2).cohomology())'''
+print("The twist of 1 around 2")
+M2=M.twist(2)
+'''print(M2.cpx(1).cohomology())
+print(M2.cpx(2).cohomology())'''
+print("The twist of 1 around 2 around 1")
+M3=M2.twist(1)
+'''print(M3.cpx(1).cohomology())
+print(M3.cpx(2).cohomology())'''
+
+
 #for n in M2.modules:
 #    print(n,M2.modules[n])
 #M3=M1.twist(2)

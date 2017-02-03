@@ -271,16 +271,19 @@ class GradedLinearMap:
         H=GradedLinearMap(d1+d2,V1.otimes(V2),W1.otimes(W2))
         gradings_H={p+q for p in F.graded_map for q in G.graded_map}
         for n in gradings_H:
-            gradings_F={p for p in V1.graded_dim if n-p in V2.graded_dim}
-            for p in gradings_F:
+            S1={p for p in V1.graded_dim}
+            S2={n-p for p in V2.graded_dim}
+            S3={p-d1 for p in W1.graded_dim}
+            S4={n+d2-p for p in W2.graded_dim}
+            for p in sorted(S1|S2|S3|S4):
                 q=n-p
                 A=F.gr_map(p)
                 B=G.gr_map(q)
-                # np.kron cann't cope with zero-dimensional
+                # np.kron can't cope with zero-dimensional
                 # vector spaces, but we need them, e.g. to handle
                 # (V-->0) (x) (W-->W')
                 if (W1.gr_dim(p+d1))*(W2.gr_dim(q+d2))!=0:
-                    C=np.asarray(np.kron(A,B))
+                    C=K.num(np.asarray(np.kron(A,B)))
                 else:
                     d3=(V1.gr_dim(p))*(V2.gr_dim(q))
                     C=K.num(np.zeros(shape=(0,d3)))

@@ -178,7 +178,7 @@ class A8Module:
             #                 (x) ... (x) hom(X_0,X_1)
             TV=self.mod(word[d-1])
             for i in range(1,d):
-                TV=TV.otimes(self.cat.hom(word[d-i-1],arg[d-i]))
+                TV=TV.otimes(self.cat.hom(word[d-i-1],word[d-i]))
             # Return the zero graded linear map
             # M(X_{d-1}) (x) hom(X_{d-2},X_{d-1}) (x) ...
             #               ...(x) hom(X_0,X_1) ----> M(X_0)[2-d]
@@ -234,7 +234,7 @@ class A8Module:
         # ev^d(c(x)b,a_{d-1},...,a_1) = \mu^{d+1}_M(c,b,a_{d-1},...,a_1)
         components={word[:-1]: self.mu(word)
                     for word in self.operations
-                    if word[-1]==Q}
+                    if word[-1]==Q and len(word)!=1}
         ev=A8ModuleMap(0,T,self,components)
         # Finally, we return the cone on ev
         return ev.cone()
@@ -316,20 +316,14 @@ class A8ModuleMap:
         # (F      \mu_N)
         # but F and \mu_M need to be suitably shifted
         # (using rejig_*) to make sense.
-        zero=A8ModuleMap(1,N,M.shift(),{})
-        for word in (self.components or M.operations or N.operations):
-            print(word)
-            print("A")
-            self.cpt((2,)).verify()
-            self.cpt((2,)).rejig_3().verify()
-            self.cpt((2,)).rejig_1().verify()
-            new_operations={}
-        '''new_operations={word:
+        L=M.shift()
+        zero=A8ModuleMap(1,N,L,{})
+        new_operations={word:
                         gla.GradedLinearMap.block(
                             M.mu(word).rejig_2(),zero.cpt(word),
                             self.cpt(word).rejig_3(),N.mu(word))
                         for word in (self.components or
-                                     M.operations or N.operations)}'''
+                                     M.operations or N.operations)}
         return A8Module(A,new_module,new_operations)
 
 class DynkinGraph():
