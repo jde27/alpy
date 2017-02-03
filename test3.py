@@ -14,3 +14,5 @@ W=gla.sph(K,2)
 F=gla.GradedLinearMap(0,V,W)
 F.graded_map={2:K.num(np.array([[1]]))}
 Z.eye().otimes(F).verify()
+
+

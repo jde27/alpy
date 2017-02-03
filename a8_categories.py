@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import rings as ri
+import numpy as np
 import graded_linear_algebra as gla
 import copy
 
@@ -339,20 +340,20 @@ class DynkinGraph():
         encodes the graph with three vertices A,B,C and arrows
         from A to B and C and from B to C.
         '''
-        self.vertices,self.arrows=G,A
+        self.vertices,self.arrows=V,A
 
     def categorify(self,K,N):
         'Produce the associated dg-category of dimension N'
 
         def sph(K,N):
             '''Returns the graded vector space H^*(S^N;K).'''
-            V=GradedVectorSpace(K)
+            V=gla.GradedVectorSpace(K)
             V.graded_dim={0:1,N:1}
             return V
         
         def sph_op(V):
             '''Returns the ring operations on V=H^*(S^N;K).'''
-            F=GradedLinearMap(0,V.otimes(V),V)
+            F=gla.GradedLinearMap(0,V.otimes(V),V)
             K=V.base
             N=max(V.graded_dim.keys())
             i=K.num(np.array([[1]]))
@@ -366,7 +367,7 @@ class DynkinGraph():
             
         def pt(K,N):
             '''Returns the graded vector space K in degree N.'''
-            V=GradedVectorSpace(K)
+            V=gla.GradedVectorSpace(K)
             V.graded_dim={N:1}
             return V
             
@@ -374,7 +375,8 @@ class DynkinGraph():
             # Sometimes in A(x)B --> C there is only one degree where
             # both domain and target have a nonzero summand
             # and the map is just the identity.
-            deg=max(((A.otimes(B)).keys()).intersect(C.keys()))
+            deg=max(((A.otimes(B)).graded_dim.keys())&(C.graded_dim.keys()))
+            F=gla.GradedLinearMap(0,A.otimes(B),C)
             i=K.num(np.array([[1]]))
             F.graded_map={deg:i}
             return F
@@ -433,15 +435,16 @@ class DynkinGraph():
                            for Y in arrow[X]
                            for Z in arrow[Y]
                            if Z in arrow[X]})
+        return A8Category(K,objects,morphisms,operations)
         
     @staticmethod
-    def BP(p,q):
+    def BP(p,q,K,N):
         '''Generates the Dynkin diagram for a Brieskorn-Pham singularity
         of the form x^p+y^q=0.'''
         M=(p-1)*(q-1)
         vertices={m for m in range(1,M+1)}
         def nbhd(m):
-            return {m+1,m+p,m+p+1}.intersect({x for x in range(1,M+1)})
-        arrows={m : nbhd(m) for m in range(1,M)}
+            return {m+1,m+p,m+p+1} & {x for x in range(1,M+1)}
+        arrows={m : nbhd(m) for m in range(1,M+1)}
         G=DynkinGraph(vertices,arrows)
-        return G.categorify()
+        return G.categorify(K,N)
