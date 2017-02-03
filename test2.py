@@ -15,7 +15,7 @@ N=A.yoneda(2)
 def disp(M):
     print(M.cpx(1).cohomology())
     print(M.cpx(2).cohomology())
-E=N.twist(1)
+E=N.twist(1).twist(1).twist(1).twist(1)
 print(E.mod(1))
 print(E.mod(2))
 print(E.operations)

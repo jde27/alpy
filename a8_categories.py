@@ -311,7 +311,7 @@ class A8ModuleMap:
         A=M.cat
         # The module for the cone is C(X) = M(X)[1] (+) N(X)
         new_module={X: M.mod(X).shift().oplus(N.mod(X))
-                    for X in (M.modules or N.modules)}
+                    for X in (M.modules.keys()|N.modules.keys())}
         # The operations are the block matrices
         # (\mu_M  0    )
         # (F      \mu_N)
@@ -319,20 +319,14 @@ class A8ModuleMap:
         # (using rejig_*) to make sense.
         L=M.shift()
         zero=A8ModuleMap(1,N,L,{})
-        for word in M.operations:
-            print("M",word)
-        for word in N.operations:
-            print("N",word)
-        for word in self.components:
-            print("ev",word)
-        for word in self.components or M.operations or N.operations:
-            print("all",word)
-        ###Seems to be a problem with "OR"!!!
+        all_keys=(self.components.keys()
+                  |M.operations.keys()
+                  |N.operations.keys())
         new_operations={word:
                         gla.GradedLinearMap.block(
                             M.mu(word).rejig_2(),zero.cpt(word),
                             self.cpt(word).rejig_3(),N.mu(word))
-                        for word in self.components or M.operations or N.operations}
+                        for word in all_keys}
         return A8Module(A,new_module,new_operations)
 
 class DynkinGraph():

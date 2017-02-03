@@ -375,7 +375,8 @@ class GradedLinearMap:
         F=self
         d=F.degree
         for n in (F.graded_map or F.source.graded_dim):
-            print("deg",n,"tar,src",F.gr_map(n).shape,F.target.gr_dim(n+d),F.source.gr_dim(n))
+            print("deg",n,"tar,src",F.gr_map(n).shape,
+                  F.target.gr_dim(n+d),F.source.gr_dim(n))
 
     def __str__(self):
         return "%s" % str(self.graded_map)
@@ -393,14 +394,14 @@ class GradedLinearMap:
         (V2_test,W1_test)=(B.source,B.target)
         space_test=(V1==V1_test and V2==V2_test and \
                      W1==W1_test and W2==W2_test)
+        all_keys=(A.graded_map.keys()|B.graded_map.keys()
+                  |C.graded_map.keys()|D.graded_map.keys())
         if degree_test and space_test:
             block_map=GradedLinearMap(d,A.source+D.source,A.target+D.target)
-            for n in (A.graded_map or B.graded_map
-                      or C.graded_map or D.graded_map):
-                (alpha,beta,gamma,delta)=(A.gr_map(n),B.gr_map(n),
-                                          C.gr_map(n),D.gr_map(n))
-                block_map.graded_map[n]=np.asarray(
-                    np.bmat([[alpha,beta],[gamma,delta]]))
+            for n in all_keys:
+                H=np.asarray(np.bmat([[A.gr_map(n),B.gr_map(n)],
+                                      [C.gr_map(n),D.gr_map(n)]]))
+                block_map.graded_map[n]=H
             return block_map
         else:
             if not space_test:
