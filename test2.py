@@ -36,6 +36,7 @@ M=A.yoneda(1)
 '''for n in M.modules:
     print(n,M.modules[n])'''
 M1=M.twist(1)
+print(M1)
 '''for n in M1.modules:
     print(n,M1.modules[n])'''
 #print(M1.operations)

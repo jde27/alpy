@@ -237,7 +237,7 @@ class A8Module:
                     if word[-1]==Q}
         ev=A8ModuleMap(0,T,self,components)
         # Finally, we return the cone on ev
-        #return ev.cone()
+        return ev.cone()
 
 
     def __str__(self):
@@ -317,12 +317,19 @@ class A8ModuleMap:
         # but F and \mu_M need to be suitably shifted
         # (using rejig_*) to make sense.
         zero=A8ModuleMap(1,N,M.shift(),{})
-        new_operations={word:
+        for word in (self.components or M.operations or N.operations):
+            print(word)
+            print("A")
+            self.cpt((2,)).verify()
+            self.cpt((2,)).rejig_3().verify()
+            self.cpt((2,)).rejig_1().verify()
+            new_operations={}
+        '''new_operations={word:
                         gla.GradedLinearMap.block(
                             M.mu(word).rejig_2(),zero.cpt(word),
                             self.cpt(word).rejig_3(),N.mu(word))
                         for word in (self.components or
-                                     M.operations or N.operations)}
+                                     M.operations or N.operations)}'''
         return A8Module(A,new_module,new_operations)
 
 class DynkinGraph():

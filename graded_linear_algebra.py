@@ -333,7 +333,7 @@ class GradedLinearMap:
                 sigma=-1
             else:
                 sigma=1
-            new_map.graded_map[n]=k.num(sigma)*self.gr_map(n)
+            new_map.graded_map[n-m]=k.num(sigma)*self.gr_map(n)
             # We use gr_maps to access self.graded_map safely
         return new_map
 
@@ -371,7 +371,7 @@ class GradedLinearMap:
         F=self
         d=F.degree
         for n in (F.graded_map or F.source.graded_dim):
-            print(F.gr_map(n).shape,F.target.gr_dim(n+d),F.source.gr_dim(n))
+            print("deg",n,"tar,src",F.gr_map(n).shape,F.target.gr_dim(n+d),F.source.gr_dim(n))
 
     def __str__(self):
         return "%s" % str(self.graded_map)
