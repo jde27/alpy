@@ -27,17 +27,21 @@ A=cat.A8Category(K,objects,morphisms,operations)
 '''print(A.base)
 print(A.objects)
 print(A.hom(1,1))
-print(A.mu(1,1,1).gr_map(0)[0,0])
+print(A.mu((1,1,1)).gr_map(0)[0,0])
 print("Testing A8Modules")'''
 M=A.yoneda(1)
 '''print(M.mod(1))'''
 ### Need to test ltimes
 #M4=M2.twist(1)
-for n in M.modules:
-    print(n,M.modules[n])
+'''for n in M.modules:
+    print(n,M.modules[n])'''
 M1=M.twist(1)
-for n in M1.modules:
-    print(n,M1.modules[n])
+'''for n in M1.modules:
+    print(n,M1.modules[n])'''
+#print(M1.operations)
+#print(M1.mu((2,)))
+#print(M1.cpx(1).cohomology())
+#print(M1.cpx(2).cohomology())
 #M2=M.twist(2)
 #for n in M2.modules:
 #    print(n,M2.modules[n])
