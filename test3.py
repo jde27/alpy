@@ -1,14 +1,11 @@
 #!/usr/bin/python
 
-class fancyclass:
-    def __init__(self):
-        pass
-    
-    def getargs(self,*args):
-        arr={(1,1):
-             'String',(1,2):'Other'}
-        print(args)
-        if args in arr:
-            print(arr[args])
-P=fancyclass()
-P.getargs(1,2)
+import rings as ri
+import rationals as QQ
+import graded_linear_algebra as gla
+
+K=QQ.QQ()
+V=gla.sph(K,2)
+F=gla.sph_op(V)
+(V.eye().otimes(F)).verify()
+print({p+q for p in [0,2] for q in [0,2,4]})

@@ -204,7 +204,20 @@ class A8Module:
                            for word in self.operations
                            if len(word)!=1})
         return A8Module(A,modules,operations)
+
+    def shift(self,m=1):
+        '''Returns the A_\infty module shifted in degree by m.
+
+        This is achieved by tensoring with K[m].
+        '''
+        K=self.cat.base
+        cochains=gla.GradedVectorSpace(K)
+        cochains.graded_dim={-m:1}
+        differential=gla.GradedLinearMap(1,cochains,cochains)
+        Z=gla.CochainComplex(cochains,differential)
+        return self.ltimes(Z)
         
+    
     def cpx(self,Q):
         '''Returns the cochain complex M(Q), \mu^1.'''
         cochains=self.mod(Q)
@@ -224,7 +237,7 @@ class A8Module:
                     if word[-1]==Q}
         ev=A8ModuleMap(0,T,self,components)
         # Finally, we return the cone on ev
-        return ev.cone()
+        #return ev.cone()
 
 
     def __str__(self):
@@ -303,7 +316,7 @@ class A8ModuleMap:
         # (F      \mu_N)
         # but F and \mu_M need to be suitably shifted
         # (using rejig_*) to make sense.
-        zero=A8ModuleMap(1,N,M,{})
+        zero=A8ModuleMap(1,N,M.shift(),{})
         new_operations={word:
                         gla.GradedLinearMap.block(
                             M.mu(word).rejig_2(),zero.cpt(word),

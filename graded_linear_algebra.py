@@ -269,9 +269,9 @@ class GradedLinearMap:
         (V1,V2)=(F.source,G.source)
         (W1,W2)=(F.target,G.target)
         H=GradedLinearMap(d1+d2,V1.otimes(V2),W1.otimes(W2))
-        gradings_H=[p+q for p in F.graded_map for q in G.graded_map]
+        gradings_H={p+q for p in F.graded_map for q in G.graded_map}
         for n in gradings_H:
-            gradings_F=[p for p in V1.graded_dim if n-p in V2.graded_dim]
+            gradings_F={p for p in V1.graded_dim if n-p in V2.graded_dim}
             for p in gradings_F:
                 q=n-p
                 A=F.gr_map(p)
@@ -393,8 +393,10 @@ class GradedLinearMap:
             block_map=GradedLinearMap(d,A.source+D.source,A.target+D.target)
             for n in (A.graded_map or B.graded_map
                       or C.graded_map or D.graded_map):
-                (a,b,c,d)=(A.gr_map(n),B.gr_map(n),C.gr_map(n),D.gr_map(n))
-                block_map.graded_map[n]=np.asarray(np.bmat([[a,b],[c,d]]))
+                (alpha,beta,gamma,delta)=(A.gr_map(n),B.gr_map(n),
+                                          C.gr_map(n),D.gr_map(n))
+                block_map.graded_map[n]=np.asarray(
+                    np.bmat([[alpha,beta],[gamma,delta]]))
             return block_map
         else:
             if not space_test:
