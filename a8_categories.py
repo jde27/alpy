@@ -198,8 +198,8 @@ class A8Module:
         operations.update({word: Z.eye().otimes(self.mu(word))
                            for word in self.operations
                            if len(word)!=1})
-        print(self.operations)
-        print(operations[(1,1)])
+        print("ltimes",self.operations)
+        print("ltimes2",operations[(1,1)])
         return A8Module(A,modules,operations)
         
     def cpx(self,Q):
