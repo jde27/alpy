@@ -279,14 +279,15 @@ class GradedLinearMap:
                 q=n-p
                 A=F.gr_map(p)
                 B=G.gr_map(q)
+                dom=(V1.gr_dim(p))*(V2.gr_dim(q))
+                tar=(W1.gr_dim(p+d1))*(W2.gr_dim(q+d2))
                 # np.kron can't cope with zero-dimensional
                 # vector spaces, but we need them, e.g. to handle
                 # (V-->0) (x) (W-->W')
-                if (W1.gr_dim(p+d1))*(W2.gr_dim(q+d2))!=0:
+                if dom!=0 and tar!=0:
                     C=K.num(np.asarray(np.kron(A,B)))
                 else:
-                    d3=(V1.gr_dim(p))*(V2.gr_dim(q))
-                    C=K.num(np.zeros(shape=(0,d3)))
+                    C=K.num(np.zeros(shape=(tar,dom)))
                 if n in H.graded_map:
                     b,a=H.graded_map[p+q].shape
                     d,c=C.shape

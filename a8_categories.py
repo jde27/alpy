@@ -230,7 +230,6 @@ class A8Module:
         Y=A.yoneda(Q)
         cochain_complex=self.cpx(Q)
         T=Y.ltimes(cochain_complex)
-        T.mu((1,2)).verify()
         # We then form the canonical evaluation morphism
         # ev^d(c(x)b,a_{d-1},...,a_1) = \mu^{d+1}_M(c,b,a_{d-1},...,a_1)
         components={word[:-1]: self.mu(word)
