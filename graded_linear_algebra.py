@@ -89,6 +89,15 @@ class GradedVectorSpace:
 
     def __add__(self,other):
         return self.oplus(other)
+
+    def __eq__(self,other):
+        gr_dim_test=[self.gr_dim(n)
+                     for n in self.graded_dim or other.graded_dim
+                     if self.gr_dim(n)!=other.gr_dim(n)]
+        if not gr_dim_test:
+            return True
+        else:
+            return False
     
     def otimes(self,other):
         '''Returns the tensor product of two graded vector spaces.'''
@@ -125,11 +134,6 @@ class GradedVectorSpace:
     def __str__(self):
         return "%s" % str(self.graded_dim)
 
-Q=rat.QQ()
-V=GradedVectorSpace(Q)
-V.graded_dim={0:1,2:1}
-print(V)
-    
 class GradedLinearMap:
     '''The class of graded linear maps F^n:V^n-->W^{n+d} of degree d.
 
@@ -220,8 +224,10 @@ class GradedLinearMap:
         '''Returns the usual sum of two graded linear maps V-->W.'''
         (F,G)=(self,other)
         (d1,d2)=(self.degree,other.degree)
-        (V1,W1)=(F.source,F.target)
-        (V2,W2)=(G.source,G.target)
+        V1=F.source
+        W1=F.target
+        V2=G.source
+        W2=G.target
         H=GradedLinearMap(d1,V1,W1)
         if V1==V2 and W1==W2 and d1==d2:
             for n in (F.graded_map or G.graded_map):
@@ -366,7 +372,11 @@ class GradedLinearMap:
         d=F.degree
         for n in (F.graded_map or F.source.graded_dim):
             print(F.gr_map(n).shape,F.target.gr_dim(n+d),F.source.gr_dim(n))
-    
+
+    def __str__(self):
+        return "%s" % str(self.graded_map)
+
+            
     @classmethod
     def block(cls,A,B,C,D):
         '''Returns a block matrix from four compatible
@@ -481,5 +491,38 @@ def rank_nullity(A):
             rank-=1
     return rank,nullity
 
+def sph(K,N):
+    '''Returns the graded vector space H^*(S^N;K).'''
+    V=GradedVectorSpace(K)
+    V.graded_dim={0:1,N:1}
+    return V
 
+def sph_op(V):
+    '''Returns the ring operations on V=H^*(S^N;K).'''
+    F=GradedLinearMap(0,V.otimes(V),V)
+    K=V.base
+    N=max(V.graded_dim.keys())
+    i=K.num(np.array([[1]]))
+    if N%2==1:
+        sigma=-1
+    else:
+        sigma=1
+    j=K.num(np.array([[1,sigma]]))
+    F.graded_map={0:i,2:j}
+    return F
 
+def pt(K,N):
+    '''Returns the graded vector space K in degree N.'''
+    V=GradedVectorSpace(K)
+    V.graded_dim={N:1}
+    return V
+    
+def simple(V,W,N):
+    '''Returns the identity V-->W where V and W are both a single copy of K
+    living in degree N.'''
+    F=GradedLinearMap(0,V,W)
+    K=V.base
+    i=K.num(np.array([[1]]))
+    F.graded_map={N:i}
+    return F
+    

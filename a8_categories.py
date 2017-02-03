@@ -91,9 +91,9 @@ class A8Category:
         if Q in A.objects:
             modules={X: A.hom(X,Q)
                      for X in A.objects if (X,Q) in A.morphisms}
-            operations={word: A.mu(word+(Q,))
+            operations={word: A.mu(word)
                         for word in A.operations
-                        if word+(Q,) in A.operations}
+                        if word[-1]==Q}
             # A.operations is indexed by tuples of objects
             # so we need to turn Q into a 1-tuple.
             return A8Module(A,modules,operations)
@@ -190,19 +190,23 @@ class A8Module:
         # We have \mu^1_{Z(x)M}(z (x) b) =
         #          = (-1)^{|b|-1} dz (x) b + z (x) db
         # The signs are obtained by Koszulifying the identity on M(X).
+        ##### This seems to be the source of strife.
         operations={(X,): d.otimes(self.mod(X).eye().koszulify())
                     +Z.eye().otimes(self.mu(X))
                     for X in self.modules}
         # Then we add in \mu^d, d\geq 2:
-        # We have \mu^d_{Z(x)M}(z(x)b,a...) = z(x)\mu^d_M(b,a...)
         operations.update({word: Z.eye().otimes(self.mu(word))
-                           for word in (self.operations and not A.objects)})
+                           for word in self.operations
+                           if len(word)!=1})
+        print(self.operations)
+        print(operations[(1,1)])
+        return A8Module(A,modules,operations)
         
     def cpx(self,Q):
         '''Returns the cochain complex M(Q), \mu^1.'''
         cochains=self.mod(Q)
         differential=self.mu(Q)
-        return CochainComplex(cochains,differential)
+        return gla.CochainComplex(cochains,differential)
         
     def twist(self,Q):
         A=self.cat
@@ -212,12 +216,16 @@ class A8Module:
         T=Y.ltimes(cochain_complex)
         # We then form the canonical evaluation morphism
         # ev^d(c(x)b,a_{d-1},...,a_1) = \mu^{d+1}_M(c,b,a_{d-1},...,a_1)
-        components={word: self.m(word+Q)\
+        components={word: self.mu(word+(Q,))
                     for word in self.operations}
-        ev=A8ModuleMap(T,self,components)
+        ev=A8ModuleMap(0,T,self,components)
         # Finally, we return the cone on ev
         return ev.cone()
 
+
+    def __str__(self):
+        return "%s" % str(self.modules)
+    
 class A8ModuleMap:
     '''The class of pre-module homomorphisms t: M-->N between
     A_\infty-modules.
@@ -291,12 +299,12 @@ class A8ModuleMap:
         # (F      \mu_N)
         # but F and \mu_M need to be suitably shifted
         # (using rejig_*) to make sense.
-        zero=A8ModuleMap(1,N,M)
+        zero=A8ModuleMap(1,N,M,{})
         new_operations={word:
                         gla.GradedLinearMap.block(
                             M.mu(word).rejig_2(),zero.cpt(word),
                             self.cpt(word).rejig_3(),N.mu(word))
-                        for word in (self.operations or
+                        for word in (self.components or
                                      M.operations or N.operations)}
         return A8Module(A,new_module,new_operations)
 
@@ -334,29 +342,43 @@ class DynkinGraph():
                 sigma=-1
             else:
                 sigma=1
-                j=K.num(np.array([[1,sigma]]))
-                F.graded_map={0:i,2:j}
-                return F
+            j=K.num(np.array([[1,sigma]]))
+            F.graded_map={0:i,2:j}
+            return F
             
         def pt(K,N):
             '''Returns the graded vector space K in degree N.'''
             V=GradedVectorSpace(K)
             V.graded_dim={N:1}
+            return V
             
+        def oper(A,B,C):
+            # Sometimes in A(x)B --> C there is only one degree where
+            # both domain and target have a nonzero summand
+            # and the map is just the identity.
+            deg=max(((A.otimes(B)).keys()).intersect(C.keys()))
+            i=K.num(np.array([[1]]))
+            F.graded_map={deg:i}
+            return F
+
         objects=self.vertices
         arrow=self.arrows
-        morphisms={(X,X): gla.sph(K,N) for X in objects}
-        morphisms.update({(X,Y): gla.pt(K,0)
+        morphisms={(X,X): sph(K,N) for X in objects}
+        morphisms.update({(X,Y): pt(K,0)
                           for X in objects
                           for Y in arrow[X]})
-        morphisms.update({(Y,X): gla.pt(K,N)
+        morphisms.update({(Y,X): pt(K,N)
                           for X in objects
                           for Y in arrow[X]})
-        operations={(X,X,X): gla.sph_op(morphisms[(X,X)])
+        operations={(X,X,X): sph_op(morphisms[(X,X)])
                     for X in objects}
-        def oper(A,B,C):
-            deg=max(((A.otimes(B)).keys()).intersect(C.keys()))
-            return 1###
+
+        '''We add in operations
+        hom(a,b) (x) hom(a,a) --> hom(a,b)
+        hom(b,b) (x) hom(a,b) --> hom(a,b)
+        hom(b,a) (x) hom(a,b) --> hom(a,a)
+        when a-->b in the directed Dynkin graph.
+        '''
         operations.update({(a,b,c):
                            oper(morphisms[(b,c)],morphisms[(a,b)],
                                 morphisms[(a,c)])
@@ -366,7 +388,12 @@ class DynkinGraph():
                            if ((a==b and c in arrow[a]) or
                                (a==c and b in arrow[a]) or
                                (b==c and a in arrow[b]))})
-        ###
+        '''We add in operations
+        hom(a,b) (x) hom(b,a) --> hom(b,b)
+        hom(a,a) (x) hom(b,a) --> hom(b,a)
+        hom(b,a) (x) hom(b,b) --> hom(b,a)
+        when a-->b in the directed Dynkin graph.
+        '''
         operations.update({(a,b,c):
                            oper(morphisms[(b,c)],morphisms[(a,b)],
                                 morphisms[(a,c)])
@@ -376,46 +403,18 @@ class DynkinGraph():
                            if ((a==b and a in arrow[c]) or
                                (a==c and a in arrow[b]) or
                                (b==c and b in arrow[a]))})
-
-        operations.update({(X,Y,Z): 1###
+        '''We add in operations
+        hom(Y,Z) (x) hom(X,Y) --> hom(X,Z)
+        for every triangle X-->Y-->Z, X-->Z in the
+        directed Dynkin graph.
+        '''
+        operations.update({(X,Y,Z):
+                           oper(morphisms[(Y,Z)],morphisms[(X,Y)],
+                                morphisms[(X,Z)])
                            for X in objects
                            for Y in arrow[X]
                            for Z in arrow[Y]
                            if Z in arrow[X]})
-        
-        '''
-        ###################THIS NEEDS MASSIVE EDITING:
-        ########## NO LONGER USE MATRICES
-        ############# AND have to use setgps
-        m_sph={0:np.matrix('1'),N:np.matrix('1 (-1)**N')}
-        #The sign comes from Seidel's convention [Seidel, p.8 Eq (1.3)]
-        tween1=gvs(self.base)
-        tween1.setgps({1:1})   # Rank 1, degree 1
-        tween2=gvs(self.base)
-        tween2.setgps({N-1:1}) # Rank 1, degree N-1
-        i=np.matrix('1')
-        for X in obj:
-            mor[(X,X)]=sph
-            prod[(X,X,X)]=ghomo(0,mor[(X,X)]*mor[(X,X)],mor[(X,X)])
-            prod[(X,X,X)].setgps(m_sph)
-        for X in obj:
-            for Y in self.arrows[X]:
-                mor[(X,Y)]=tween1
-                mor[(Y,X)]=tween2
-                # Need to get signs right! Have not checked them.
-                prod[(X,X,Y)]=ghomo(0,mor[(X,Y)]*mor[(X,X)],mor[(X,Y)],{1:i})
-                prod[(X,Y,X)]=ghomo(0,mor[(Y,X)]*mor[(X,Y)],mor[(X,X)],{N:i})
-                prod[(X,X,Y)]=ghomo(0,mor[(X,Y)]*mor[(X,X)],mor[(X,Y)],{N-1:i})
-                prod[(X,Y,Y)]=ghomo(0,mor[(Y,Y)]*mor[(X,Y)],mor[(X,Y)],{1:i})
-                prod[(Y,X,Y)]=ghomo(0,mor[(X,Y)]*mor[(Y,X)],mor[(Y,Y)],{N:i})
-                prod[(Y,Y,X)]=ghomo(0,mor[(Y,X)]*mor[(Y,Y)],mor[(Y,X)],{N-1:i})
-        for X in obj:
-            for Y in self.arrows[X]:
-                for Z in (self.arrows[X].keys() & self.arrows[Y].keys()):
-                    # Confused about the m_2 products from triangles - have asked Ailsa
-                    prod[(X,Y,Z)]=ghomo(0,mor[(Y,Z)]*mor[(X,Y)],mor[(X,Z)],{})
-        return dg_cat(obj,mor,diff,prod)
-        '''
         
     @staticmethod
     def BP(p,q):
@@ -427,3 +426,4 @@ class DynkinGraph():
             return {m+1,m+p,m+p+1}.intersect({x for x in range(1,M+1)})
         arrows={m : nbhd(m) for m in range(1,M)}
         G=DynkinGraph(vertices,arrows)
+        return G.categorify()
