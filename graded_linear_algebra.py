@@ -446,6 +446,8 @@ class CochainComplex:
             coh.graded_dim[n]=kernel.gr_dim(n)-image.gr_dim(n)
             if coh.graded_dim[n]<0:
                 print("Cohomology seems to be negative dimensional...")
+                print(self.cochains)
+                print(n,kernel.gr_dim(n),image.gr_dim(n),kernel.graded_dim[n],image.graded_dim[n])
         return coh
 
 
