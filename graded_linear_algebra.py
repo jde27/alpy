@@ -92,7 +92,7 @@ class GradedVectorSpace:
 
     def __eq__(self,other):
         gr_dim_test=[self.gr_dim(n)
-                     for n in self.graded_dim or other.graded_dim
+                     for n in (self.graded_dim.keys()|other.graded_dim.keys())
                      if self.gr_dim(n)!=other.gr_dim(n)]
         if not gr_dim_test:
             return True
@@ -218,7 +218,7 @@ class GradedLinearMap:
             # we return zero - another safety feature!
             d=self.degree
             (d1,d2)=(self.source.gr_dim(n),self.target.gr_dim(n+d))
-            return K.num(np.zeros(shape=(d2,d1)))
+            return K.num(np.zeros(shape=(d2,d1),dtype=int))
 
     def __add__(self,other):
         '''Returns the usual sum of two graded linear maps V-->W.'''
@@ -287,12 +287,12 @@ class GradedLinearMap:
                 if dom!=0 and tar!=0:
                     C=K.num(np.asarray(np.kron(A,B)))
                 else:
-                    C=K.num(np.zeros(shape=(tar,dom)))
+                    C=K.num(np.zeros(shape=(tar,dom),dtype=int))
                 if n in H.graded_map:
                     b,a=H.graded_map[p+q].shape
                     d,c=C.shape
-                    Z1=np.zeros(shape=(b,c))
-                    Z2=np.zeros(shape=(d,a))
+                    Z1=K.num(np.zeros(shape=(b,c),dtype=int))
+                    Z2=K.num(np.zeros(shape=(d,a),dtype=int))
                     block_diag=np.asarray(np.bmat([[H.gr_map(p+q),Z1],[Z2,C]]))
                     H.graded_map[p+q]=K.num(block_diag)
                 else:
@@ -378,6 +378,19 @@ class GradedLinearMap:
             print("deg",n,"tar,src",F.gr_map(n).shape,
                   F.target.gr_dim(n+d),F.source.gr_dim(n))
 
+    def __eq__(self,other):
+        '''It seems that testing equality of matrices
+        returns a matrix of True/Falses.'''
+        degree_test=(self.degree==other.degree)
+        gr_map_test=[self.gr_map(n)
+                     for n in (self.graded_map.keys()|other.graded_map.keys())
+                     if (self.gr_map(n)!=other.gr_map(n)).any()]
+        if degree_test and not gr_map_test:
+            return True
+        else:
+            return False
+        
+            
     def __str__(self):
         return "%s" % str(self.graded_map)
 
@@ -446,8 +459,6 @@ class CochainComplex:
             coh.graded_dim[n]=kernel.gr_dim(n)-image.gr_dim(n)
             if coh.graded_dim[n]<0:
                 print("Cohomology seems to be negative dimensional...")
-                print(self.cochains)
-                print(n,kernel.gr_dim(n),image.gr_dim(n),kernel.graded_dim[n],image.graded_dim[n])
         return coh
 
 

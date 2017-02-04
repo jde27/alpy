@@ -243,6 +243,35 @@ class A8Module:
 
     def __str__(self):
         return "%s" % str(self.modules)
+
+    def verify(self):
+        '''Check d^2=0'''
+        A=self.cat
+        M=self
+        verify_dict={}
+        for X in A.objects:
+            zero_map1=gla.GradedLinearMap(2,M.mod(X),M.mod(X))
+            verify_dict[X]=(M.mu((X,))*M.mu((X,))==zero_map1)
+        '''Check Leibniz rule'''
+        for X in A.objects:
+            for Y in A.objects:
+                zero_map2=gla.GradedLinearMap(1,M.mod(Y).otimes(A.hom(X,Y)),M.mod(X))
+                verify_dict[(X,Y)]=(M.mu((X,))*M.mu((X,Y))
+                                    +M.mu((X,Y))*(M.mu((Y,)).otimes(A.hom(X,Y).eye()))
+                                    +M.mu((X,Y))*(M.mod(Y).eye().otimes(A.mu((X,Y))))
+                                    ==zero_map2)
+        '''Check module-associativity'''
+        for X in A.objects:
+            for Y in A.objects:
+                for Z in A.objects:
+                    zero_map3=gla.GradedLinearMap(0,(M.mod(Z).otimes(A.hom(Y,Z)).otimes(A.hom(X,Y))),M.mod(X))
+                    verify_dict[(X,Y,Z)]=(M.mu((X,Y))*(M.mu((Y,Z)).otimes(A.hom(X,Y).eye()))
+                                          +M.mu((X,Z))*(M.mod(Z).eye().otimes(A.mu((X,Y,Z))))
+                                          ==zero_map3)
+        if not all(verify_dict):
+            print("Not an A_\infty module, sorry.")
+        else:
+            print("Your luck is in.")
     
 class A8ModuleMap:
     '''The class of pre-module homomorphisms t: M-->N between
