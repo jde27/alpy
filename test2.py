@@ -15,20 +15,19 @@ N=A.yoneda(2)
 def disp(M):
     print(M.cpx(1).cohomology())
     print(M.cpx(2).cohomology())
-#M.verify()
 E1=N.twist(1)
-#E1.verify()
 E2=E1.twist(1)
-#E2.verify()
-E3=E2.twist(1)
+E2.verify()
+#E3=E2.twist(1)
 #E3.verify()
-E4=E3.twist(1)
-S=E4.mu((1,))
-for n in S.gr_map(0):
-    print("Row")
+#E4=E3.twist(1)
+#S=E4.mu((1,))
+#T=S*S
+#E4.verify()
+'''for n in T.gr_map(-1):
+    print('\n')
     for m in n:
-        print(m)
-disp(E4)
+        print(m,end=' ')'''
 #ki=E4.mu((1,)).ker_im()
 #print(ki[0])
 #print(ki[1])

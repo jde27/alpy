@@ -197,6 +197,11 @@ class A8Module:
         # We have \mu^1_{Z(x)M}(z (x) b) =
         #          = (-1)^{|b|-1} dz (x) b + z (x) db
         # The signs are obtained by Koszulifying the identity on M(X).
+        ### It seems that the first failure of our program
+        ### to produce an A_\infty-module is here:
+        ### when there is a nontrivial differential in Z
+        ### Further testing shows that it happens first for (1,1,1),
+        ### i.e. that associativity fails (only involves \mu_M^2)
         operations={(X,): d.otimes(self.mod(X).eye().koszulify())
                     +Z.eye().otimes(self.mu((X,)))
                     for X in self.modules}
@@ -204,7 +209,34 @@ class A8Module:
         operations.update({word: Z.eye().otimes(self.mu(word))
                            for word in self.operations
                            if len(word)!=1})
-        return A8Module(A,modules,operations)
+        new_module=A8Module(A,modules,operations)
+        if new_module.verify():
+            return new_module
+        else:
+            def displ(L):
+                for k in L.graded_map:
+                    print('\nk:',k)
+                    for m in L.gr_map(k):
+                        print()
+                        for n in m:
+                            print(n,end=' ')
+                print('\n')
+            print("Chain complex:")
+            print(Z)
+            print("Differential:")
+            displ(d)
+            Y=self
+            for X in A.objects:
+                print("Y(",X,")")
+                print(Y.mod(X))
+                print("Y operations:")
+                displ(Y.mu((X,)))
+            for X1 in A.objects:
+                for X2 in A.objects:
+                    print("Y operations: ",X1,X2)
+                    displ(Y.mu((X1,X2)))
+            exit()
+            
 
     def shift(self,m=1):
         '''Returns the A_\infty module shifted in degree by m.
@@ -231,6 +263,7 @@ class A8Module:
         Y=A.yoneda(Q)
         cochain_complex=self.cpx(Q)
         T=Y.ltimes(cochain_complex)
+        T.verify()
         # We then form the canonical evaluation morphism
         # ev^d(c(x)b,a_{d-1},...,a_1) = \mu^{d+1}_M(c,b,a_{d-1},...,a_1)
         components={word[:-1]: self.mu(word)
@@ -251,7 +284,7 @@ class A8Module:
         verify_dict={}
         for X in A.objects:
             zero_map1=gla.GradedLinearMap(2,M.mod(X),M.mod(X))
-            verify_dict[X]=(M.mu((X,))*M.mu((X,))==zero_map1)
+            verify_dict[(X,)]=(M.mu((X,))*M.mu((X,))==zero_map1)
         '''Check Leibniz rule'''
         for X in A.objects:
             for Y in A.objects:
@@ -268,10 +301,32 @@ class A8Module:
                     verify_dict[(X,Y,Z)]=(M.mu((X,Y))*(M.mu((Y,Z)).otimes(A.hom(X,Y).eye()))
                                           +M.mu((X,Z))*(M.mod(Z).eye().otimes(A.mu((X,Y,Z))))
                                           ==zero_map3)
-        if not all(verify_dict):
+        if not all(verify_dict.values()):
+            def displ(L):
+                for k in L.graded_map:
+                    print('\nk:',k)
+                    for m in L.gr_map(k):
+                        print()
+                        for n in m:
+                            print(n,end=' ')
+                print('\n')
+            print("*****************")
+            displ((M.mu((1,1)).otimes(A.hom(1,1).eye())))
+            print("******************")
+            displ(M.mod(1).eye().otimes(A.mu((1,1,1))))
+            print("******************")
+            displ(M.mu((1,1))*(M.mu((1,1)).otimes(A.hom(1,1).eye())))
+            print("------------------")
+            displ(M.mu((1,1))*(M.mod(1).eye().otimes(A.mu((1,1,1)))))
+            #print(verify_dict)
+            #for word in self.operations:
+            #    print(word,self.mu(word).source,self.mu(word).target)
+            #    displ(self.mu(word))
             print("Not an A_\infty module, sorry.")
+            return False
         else:
             print("Your luck is in.")
+            return True
     
 class A8ModuleMap:
     '''The class of pre-module homomorphisms t: M-->N between
@@ -356,7 +411,10 @@ class A8ModuleMap:
                             M.mu(word).rejig_2(),zero.cpt(word),
                             self.cpt(word).rejig_3(),N.mu(word))
                         for word in all_keys}
-        return A8Module(A,new_module,new_operations)
+        the_cone=A8Module(A,new_module,new_operations)
+        print("Verifying the cone")
+        the_cone.verify()
+        return the_cone
 
 class DynkinGraph():
     def __init__(self,V,A):

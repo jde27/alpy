@@ -9,10 +9,17 @@ K=FF.FF(2)
 V=gla.GradedVectorSpace(K)
 V.graded_dim={0:1,1:2,2:3,3:4}
 F=gla.GradedLinearMap(1,V,V)
+G=gla.GradedLinearMap(1,V,V)
 z1=K.num(np.array([[1],[0]]))
+u1=K.num(np.array([[0,0],[1,0]]))
 z2=K.num(np.array([[0,1],[0,0],[0,1]]))
 z3=K.num(np.array([[0,1,0],[1,1,1],[1,0,1],[0,1,0]]))
 F.graded_map={0:z1,1:z2,2:z3}
+G.graded_map={0:u1,1:z2,2:z3}
+if F==G:
+    print("Doom")
+else:
+    print("Yay")
 for n in F.gr_map(0):
     for m in n:
         print(m)

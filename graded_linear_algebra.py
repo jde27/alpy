@@ -199,6 +199,15 @@ class GradedLinearMap:
                 The block map with matrix
                     [ A B ]
                     [ C D ]
+
+    Static methods:
+    
+        GradedLinearMap.shuffle_map(A,B,C):
+            Args: A, B, C [GradedVectorSpaces]
+            Returns [GradedLinearMap]:
+                The permutation matrix which realises the isomorphism
+                ( A (x) B ) (x) C ----> A (x) ( B (x) C )
+            of graded triple tensor products.
     '''
     def __init__(self,degree,source,target):
         self.degree=degree
@@ -379,13 +388,10 @@ class GradedLinearMap:
                   F.target.gr_dim(n+d),F.source.gr_dim(n))
 
     def __eq__(self,other):
-        '''It seems that testing equality of matrices
-        returns a matrix of True/Falses.'''
         degree_test=(self.degree==other.degree)
-        gr_map_test=[self.gr_map(n)
-                     for n in (self.graded_map.keys()|other.graded_map.keys())
-                     if (self.gr_map(n)!=other.gr_map(n)).any()]
-        if degree_test and not gr_map_test:
+        gr_map_test=[((self.gr_map(n)==other.gr_map(n)).all())
+                     for n in (self.graded_map.keys()|other.graded_map.keys())]
+        if degree_test and all(gr_map_test):
             return True
         else:
             return False
@@ -424,7 +430,55 @@ class GradedLinearMap:
                 print("Cannot take direct sum of homomorphisms: degrees "\
                       "are incompatible.")
             return None
+
+    @staticmethod
+    def shuffle_map(A,B,C):
+        '''This function returns the natural graded linear map
+
+        ( A (x) B ) (x) C ----> A (x) ( B (x) C )
+
+        The main point of this is that we have implicitly picked a basis
+        for all our vector spaces and the basis order is different
+        for these two triple tensor products.
+        '''
+        def F(x,y):
+            return (A.gr_dim(m1+x))*(B.gr_dim(m2+y))*(C.gr_dim(m3+N-x-y))
+
+        def insert_submatrix(N1,N2,top,left):
+            '''Inserts the submatrix N1 into N2 at position (top,left).'''
+            height,width=N1.shape
+            N2[top:top+height,left:left+width]=N1
+            
+        K=A.base
+        D=(A.otimes(B)).otimes(C)
+        E=A.otimes(B.otimes(C))
+        m1=min(A.graded_dim.keys())
+        m2=min(B.graded_dim.keys())
+        m3=min(C.graded_dim.keys())
+        shuffler=GradedLinearMap(0,D,E)
+        for n in D.graded_dim:
+            delta=D.gr_dim(n)
+            M=np.zeros(shape=(delta,delta),dtype=int)
+            N=n-m1-m2-m3
+            x,y,alpha=0,0,0
+            while y<=N:
+                Alpha[(x,y)]=alpha
+                alpha+=F(x,y)
+                if y>0:
+                    x,y=x+1,y-1
+                else:
+                    x,y=0,x+1
+            x,y,beta=0,0,0
+            while x<=N:
+                M=insert_submatrix(np.eye(F(x,y),dtype=int),M,Alpha[(x,y)],beta)
+                if y < N:
+                    x,y=x,y+1
+                else:
+                    x,y=x+1,0
+            shuffler.graded_map[n]=K.num(M)
+        return shuffler
     
+        
 class CochainComplex:
     '''The class of cochain complexes.
 
@@ -449,6 +503,15 @@ class CochainComplex:
         self.cochains=cochains
         self.differential=differential
     
+    def verify(self):
+        d=self.differential
+        Z=self.cochains
+        zero_map=GradedLinearMap(2,Z,Z)
+        if d*d!=zero_map:
+            print("Not a cochain complex")
+        else:
+            print("Yes a cochain complex")
+        
     def cohomology(self):
         '''Computes cohomology of a cochain complex.'''
         d=self.differential
