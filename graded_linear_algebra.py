@@ -400,6 +400,14 @@ class GradedLinearMap:
     def __str__(self):
         return "%s" % str(self.graded_map)
 
+    def display(self):
+        for n in self.graded_map:
+            print("Degree ",n,":\n[",end='')
+            for x in self.gr_map(n):
+                print()
+                for y in x:
+                    print(y,end=' ')
+            print("\n]\n")
             
     @classmethod
     def block(cls,A,B,C,D):
@@ -448,6 +456,7 @@ class GradedLinearMap:
             '''Inserts the submatrix N1 into N2 at position (top,left).'''
             height,width=N1.shape
             N2[top:top+height,left:left+width]=N1
+            return N2
             
         K=A.base
         D=(A.otimes(B)).otimes(C)
@@ -461,6 +470,7 @@ class GradedLinearMap:
             M=np.zeros(shape=(delta,delta),dtype=int)
             N=n-m1-m2-m3
             x,y,alpha=0,0,0
+            Alpha={}
             while y<=N:
                 Alpha[(x,y)]=alpha
                 alpha+=F(x,y)
@@ -469,12 +479,14 @@ class GradedLinearMap:
                 else:
                     x,y=0,x+1
             x,y,beta=0,0,0
-            while x<=N:
+            while x<N:
                 M=insert_submatrix(np.eye(F(x,y),dtype=int),M,Alpha[(x,y)],beta)
-                if y < N:
+                beta+=F(x,y)
+                if y < N-x:
                     x,y=x,y+1
                 else:
                     x,y=x+1,0
+            M=insert_submatrix(np.eye(F(x,y),dtype=int),M,Alpha[(x,y)],beta)
             shuffler.graded_map[n]=K.num(M)
         return shuffler
     
