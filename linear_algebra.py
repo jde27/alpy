@@ -308,6 +308,10 @@ class Vector(AlgebraicStructure):
         else:
             return list(gradings)[0]            
 
+    def shift(self,m=1):
+        '''Returns the same vector in a shifted vector space.'''
+        return Vector(self.space.shift(m),self.components)
+        
     def otimes(self,other):
         return Vector.tensor(self,other)
 
@@ -461,7 +465,7 @@ class LinearMap(AlgebraicStructure):
         (M,N,d)=(self.source,self.target,self.deg)
         new_map=LinearMap(M,N.shift(m),d-m)
         for i in self.maps:
-            new_map.maps[i]=self[i]
+            new_map.maps[i]=self.maps[i].shift(m)
         return new_map
         
     def rejig_2(self,m=1):
@@ -473,7 +477,7 @@ class LinearMap(AlgebraicStructure):
         if not m%2:
             (M,N,d)=(self.source,self.target,self.deg)
             new_map=LinearMap(M.shift(m),N.shift(m),d)
-            new_map.maps[i]=(self.maps[i])*K(-1)
+            new_map.maps[i]=(self.maps[i].shift(m))*K(-1)
             return new_map
         else:
             return self

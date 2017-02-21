@@ -281,18 +281,33 @@ class A8Module(AlgebraicStructure):
 
         This is achieved by tensoring with K[m].
         '''
-        K=self.field
+        M,A=self,self.cat
+        modules={X: M[X].shift(m) for X in M.modules}
+        operations={(X,): M.mu(X).rejig_2()
+                    for X in A.objects if (X,) in M.operations}
+        for word in M.operations:
+            if len(word)!=1:
+                F=M.operations(word)
+                new_source=M.mod(word[-1]).shift(m).otimes(A.hom(*word)).flatten(1)
+                new_target=M.mod(word[0]).shift(m)
+                new_op=LinearMap(new_source,new_target,F.deg)
+                new_op.maps.update({i: F[i].shift(m)})
+                operations.update({word: new_op})
+        return A8Module(A,modules,operations)
+        
+        
+        '''K=self.field
         cochains=VectorSpace(K)
         cochains.basis.update({0:-m})
         differential=LinearMap(cochains,cochains,1)
         Z=CochainComplex(cochains,differential)
-        return Z.otimes(self)
+        return Z.otimes(self)'''
         
     def verify(self):
         M,A=self,self.cat
         super_words=set()
         for word in M.operations:
-            print('Verifying module operations are well-defined ')
+            print('Verifying module operations are well-defined: ',word)
             M.mu(*word).verify()
             if M.mu(*word).deg!=2-len(word):
                 raise ValueError('Not an A_\infty-module: '+
