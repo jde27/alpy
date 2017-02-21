@@ -3,10 +3,6 @@
 import rings as ri
 import numpy as np
 import graded_linear_algebra as gla
-import copy
-
-### There is some noticeable code reuse in some of the functions,
-### for forming certain tensor products (denoted TV below).
 
 class A8Category:
     '''The class of A_\infty-categories.
@@ -35,6 +31,11 @@ class A8Category:
                 if defined (and zero otherwise -
                 we only store nonzero morphism spaces).
 
+        A.t_hom((X_0,...,X_d)):
+            Args: (X_0,...,X_d) tuple of A.objects
+            Returns: [gla.GradedVectorSpace] The tensor product
+                hom(X_{d-1},X_d) (x) ... (x) hom(X_0,X_1)
+
         A.mu((X_0,...,X_d)):
             Args: (X_0,...,X_d) tuple of A.objects
             Returns: [gla.GradedLinearMap] A.operations[(X_0,...,X_d)]
@@ -58,32 +59,51 @@ class A8Category:
             # and hence complicated nested objects (including
             # a dictionary). We therefore use deepcopy to avoid
             # mutability backwash.
-            return copy.deepcopy(self.morphisms[(X,Y)])
+            return self.morphisms[(X,Y)]
         else:
             # If we haven't bothered to define morphisms[(X,Y)]
             # then it's the zero vector space, which can be created
             # like this:
             return gla.GradedVectorSpace(self.base)
 
+    def thom(self,word):
+        '''Returns a tensor of hom spaces:
+        
+        Given a word (X_0,...,X_d) of objects in A,
+        A.thom(word) returns the tensor product
+
+        hom(X_{d-1},X_d) (x) (hom(X_{d-2},X_{d-1}) (x) ( ... 
+                                               (x) hom(X_0,X_1))...)
+        '''
+        d=len(word)-1
+        A=self
+        K=A.base
+        tensor=gla.GradedVectorSpace(K)
+        tensor.graded_dim={0:1}
+        for i in range(0,d):
+            X=word[i]
+            Y=word[i+1]
+            tensor=(A.hom(X,Y)).otimes(tensor)
+        return tensor
+        
     def mu(self,word):
         '''Provides safe access to A_\infty-operations.
 
         word is a tuple of objects in the category.'''
+        A=self
         if word in self.operations:
             # The A_\infty-operations are instances of GradedLinearMap,
             # and hence complicated nested objects (including
             # a dictionary). We therefore use deepcopy to avoid
             # mutability backwash.
-            return copy.deepcopy(self.operations[word])
+            return self.operations[word]
         else:
             # If we haven't bothered to define mu(word)
             # then it's the zero map, which we construct as follows:
             d=len(word)-1
             # Forming the tensor product
             # TV = hom(X_{d-1},X_d) (x) ... (x) hom(X_0,X_1)
-            TV=self.hom(word[d-1],word[d])
-            for i in range(1,d):
-                TV=TV.otimes(self.hom(word[d-i-1],word[d-i]))
+            TV=A.thom(word)
             # Return the zero graded linear map
             # hom(X_{d-1},X_d) (x) ... (x) hom(X_0,X_1) --> hom(X_0,X_d)
             return gla.GradedLinearMap(2-d,TV,self.hom(word[0],word[d]))
@@ -156,7 +176,7 @@ class A8Module:
         # a dictionary). We therefore use deepcopy to avoid
         # mutability backwash.
         if X in self.modules:
-            return copy.deepcopy(self.modules[X])
+            return self.modules[X]
         else:
             # If we haven't bothered to define module[X]
             # then it's the zero vector space, which can be created
@@ -169,17 +189,16 @@ class A8Module:
         # (including a dictionary). We therefore use deepcopy to avoid
         # mutability backwash.
         if word in self.operations:
-            return copy.deepcopy(self.operations[word])
+            return self.operations[word]
         else:
             # If we haven't bothered to define mu(word)
             # then it's the zero map, which we construct as follows:
+            A=self.cat
             d=len(word)
-            # Forming the tensor product
-            # TV = M(X_{d-1}) (x) hom(X_{d-2},X_{d-1})
-            #                 (x) ... (x) hom(X_0,X_1)
-            TV=self.mod(word[d-1])
-            for i in range(1,d):
-                TV=TV.otimes(self.cat.hom(word[d-i-1],word[d-i]))
+            # Construct the tensor product
+            # M(X_{d-1}) (x) hom(X_{d-2},X_{d-1}) (x) ... (x) hom(X_0,X_1)
+            hom_word=word[:d]
+            TV=self.mod(word[d-1]).otimes(A.thom(hom_word))
             # Return the zero graded linear map
             # M(X_{d-1}) (x) hom(X_{d-2},X_{d-1}) (x) ...
             #               ...(x) hom(X_0,X_1) ----> M(X_0)[2-d]
@@ -197,22 +216,22 @@ class A8Module:
         # We have \mu^1_{Z(x)M}(z (x) b) =
         #          = (-1)^{|b|-1} dz (x) b + z (x) db
         # The signs are obtained by Koszulifying the identity on M(X).
-        ### It seems that the first failure of our program
-        ### to produce an A_\infty-module is here:
-        ### when there is a nontrivial differential in Z
-        ### Further testing shows that it happens first for (1,1,1),
-        ### i.e. that associativity fails (only involves \mu_M^2)
         operations={(X,): d.otimes(self.mod(X).eye().koszulify())
                     +Z.eye().otimes(self.mu((X,)))
                     for X in self.modules}
-        # Then we add in \mu^d, d\geq 2:
-        operations.update({word: Z.eye().otimes(self.mu(word))
+        # Then we add in \mu^k, k\geq 2:
+        # \mu^k( z(x)b , a_{k-1},...,a_0) = z(x)\mu^k_M(b,a_{k-1},a_0)
+        # Therefore we need to precompose \mu^k_A with the shuffle
+        # (Z (x) M) (x) tensor_hom --> Z (x) (M (x) tensor_hom)
+        operations.update({word: ((Z.eye().otimes(self.mu(word)))
+                                  .shuffle_map(Z,
+                                               self.mod(word[-1]),
+                                               A.thom(word)))
                            for word in self.operations
                            if len(word)!=1})
         new_module=A8Module(A,modules,operations)
-        if new_module.verify():
-            return new_module
-        else:
+        return new_module
+    '''        else:
             def displ(L):
                 for k in L.graded_map:
                     print('\nk:',k)
@@ -235,7 +254,7 @@ class A8Module:
                 for X2 in A.objects:
                     print("Y operations: ",X1,X2)
                     displ(Y.mu((X1,X2)))
-            exit()
+            exit()'''
             
 
     def shift(self,m=1):
@@ -263,7 +282,6 @@ class A8Module:
         Y=A.yoneda(Q)
         cochain_complex=self.cpx(Q)
         T=Y.ltimes(cochain_complex)
-        T.verify()
         # We then form the canonical evaluation morphism
         # ev^d(c(x)b,a_{d-1},...,a_1) = \mu^{d+1}_M(c,b,a_{d-1},...,a_1)
         components={word[:-1]: self.mu(word)
@@ -277,6 +295,17 @@ class A8Module:
     def __str__(self):
         return "%s" % str(self.modules)
 
+    def display(self):
+        M=self
+        A=M.cat
+        print("\n A_\infty module M.")
+        print("Underlying vector spaces:")
+        for X in A.objects:
+            print("M(",X,") = ",M.mod(X))
+        for word in M.operations:
+            print("M(",word[-1],")* ",word[:-1]," = ")
+            M.mu(word).display()
+    
     def verify(self):
         '''Check d^2=0'''
         A=self.cat
@@ -297,10 +326,22 @@ class A8Module:
         for X in A.objects:
             for Y in A.objects:
                 for Z in A.objects:
-                    zero_map3=gla.GradedLinearMap(0,(M.mod(Z).otimes(A.hom(Y,Z)).otimes(A.hom(X,Y))),M.mod(X))
-                    verify_dict[(X,Y,Z)]=(M.mu((X,Y))*(M.mu((Y,Z)).otimes(A.hom(X,Y).eye()))
-                                          +M.mu((X,Z))*(M.mod(Z).eye().otimes(A.mu((X,Y,Z))))
-                                          ==zero_map3)
+                    src=M.mod(Z).otimes(A.hom(Y,Z)).otimes(A.hom(X,Y))
+                    zero_map3=gla.GradedLinearMap(0,src,M.mod(X))
+                    interro=M.mu((Y,Z)).otimes(A.hom(X,Y).eye())
+                    term_1=M.mu((X,Y))*interro
+                    interrim=(M.mod(Z).eye().otimes(A.mu((X,Y,Z)))
+                              .shuffle_map(M.mod(Z),A.hom(Y,Z),A.hom(X,Y)))
+                    term_2=M.mu((X,Z))*interrim
+                    verify_dict[(X,Y,Z)]=(term_1+term_2==zero_map3)
+                    if not verify_dict[(X,Y,Z)]:
+                        print(X,Y,Z)
+                        interro.display()
+                        term_1.display()
+                        interrim.display()
+                        term_2.display()
+                        print("Abort!")
+                        exit()
         if not all(verify_dict.values()):
             def displ(L):
                 for k in L.graded_map:
@@ -310,8 +351,8 @@ class A8Module:
                         for n in m:
                             print(n,end=' ')
                 print('\n')
+
             print("*****************")
-            displ((M.mu((1,1)).otimes(A.hom(1,1).eye())))
             print("******************")
             displ(M.mod(1).eye().otimes(A.mu((1,1,1))))
             print("******************")
@@ -325,7 +366,7 @@ class A8Module:
             print("Not an A_\infty module, sorry.")
             return False
         else:
-            print("Your luck is in.")
+            print("This module satisfies the A_\infty-module equations.")
             return True
     
 class A8ModuleMap:
@@ -368,7 +409,7 @@ class A8ModuleMap:
             # GradedLinearMap, and hence complicated nested objects
             # (including a dictionary). We therefore use deepcopy to avoid
             # mutability backwash.
-            return copy.deepcopy(self.components[word])
+            return self.components[word]
         else:
             # If we haven't bothered to define cpt[word]
             # then it's the zero map, which can be created
@@ -386,13 +427,44 @@ class A8ModuleMap:
             return gla.GradedLinearMap(1+self.degree-d,TV,
                                        self.target.mod(word[0]))
 
-    def cone(self):
-        '''Returns the cone on an A_\infty pre-module morphism.
-
-        Would be nice if this checked that the morphism is closed.
+    def display(self):
+        for word in self.components:
+            self.cpt(word).display()
+        
+    def verify(self):
+        '''Verify that a morphism is closed
+        
+        We only actually need this for morphisms of the form
+        ev^1: M(X)-->N(X)
+        (i.e. no higher parts of the morphism),
+        for which the closure condition is just
+        that it commutes with the differential.
         '''
+        M=self.source
+        N=self.target
+        A=M.cat
+        d=self.degree
+        verify_dict={}
+        for X in A.objects:
+            zero_map1=gla.GradedLinearMap(d+1,M.mod(X),N.mod(X))
+            test=N.mu((X,))*self.cpt((X,))+self.cpt((X,))*M.mu((X,))
+            verify_dict[(X,)]=(test==zero_map1)
+        if not all(verify_dict.values()):
+            print("Morphism is not closed :(")
+            exit()
+        else:
+            print("Morphism is closed :)")
+        
+    def cone(self):
+        '''Returns the cone on an A_\infty pre-module morphism.'''
         (M,N)=(self.source,self.target)
         A=M.cat
+        print("Forming the cone of a map from...")
+        M.display()
+        print("...to...")
+        N.display()
+        print("...given by...")
+        self.display()
         # The module for the cone is C(X) = M(X)[1] (+) N(X)
         new_module={X: M.mod(X).shift().oplus(N.mod(X))
                     for X in (M.modules.keys()|N.modules.keys())}
@@ -416,6 +488,7 @@ class A8ModuleMap:
         the_cone.verify()
         return the_cone
 
+    
 class DynkinGraph():
     def __init__(self,V,A):
         '''

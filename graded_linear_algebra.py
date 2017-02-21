@@ -56,9 +56,21 @@ class GradedVectorSpace:
             Args: m [int] (m=1 by default)
             Returns [GradedVectorSpace]:
                 The shift of V by m, where V[m]^d = V^{m+d}
-    
+
         print(V): Prints V in the form
                     { n : dim(V^n) }
+
+
+    @staticmethods:
+
+        GradedVectorSpace.shuffle(n,A,B,C):
+            Args:   n [int]
+                    A, B, C [GradedVectorSpaces]
+            Returns [GradedLinearMap]:
+                The permutation of columns given by the isomorphism
+                [( A (x) B ) (x) C]^n ----> [A (x) ( B (x) C )]^n
+            of graded triple tensor products.
+    
     '''
 
     def __init__(self,base):
@@ -134,6 +146,45 @@ class GradedVectorSpace:
     def __str__(self):
         return "%s" % str(self.graded_dim)
 
+    @staticmethod
+    def shuffle(n,A,B,C):
+        '''Args:
+            n [int]
+            A,B,C [gla.GradedVectorSpace]
+        
+        '''
+        shuffle_array=[]
+        if (not A.graded_dim) or (not B.graded_dim) or (not C.graded_dim):
+            return shuffle_array
+        m1=min(A.graded_dim.keys())
+        m2=min(B.graded_dim.keys())
+        m3=min(C.graded_dim.keys())
+        r1=max(A.graded_dim.keys())
+        r2=max(B.graded_dim.keys())
+        r3=max(C.graded_dim.keys())
+        pre_shuffle={}
+        post_shuffle={}
+        ctr=0
+        for x in range(m1,r1+1):
+            for u in range(0,A.gr_dim(x)):
+                for y in range(m2,r2+1):
+                    for v in range(0,B.gr_dim(y)):
+                        for w in range(0,C.gr_dim(n-x-y)):
+                            post_shuffle[(x,u,y,v,n-x-y,w)]=ctr
+                            ctr+=1
+        ctr=0
+        for i in range(m1+m2,r1+r2+1):
+            for x in range(m1,r1+1):
+                for u in range(0,A.gr_dim(x)):
+                    for v in range(0,B.gr_dim(i-x)):
+                        for w in range(0,C.gr_dim(n-i)):
+                            pre_shuffle[ctr]=(x,u,i-x,v,n-i,w)
+                            ctr+=1
+        for index in pre_shuffle:
+            shuffle_array.append(post_shuffle[pre_shuffle[index]])
+        return shuffle_array
+
+    
 class GradedLinearMap:
     '''The class of graded linear maps F^n:V^n-->W^{n+d} of degree d.
 
@@ -191,6 +242,12 @@ class GradedLinearMap:
             Returns a tuple (V,W) [GradedVectorSpace]:
                 The kernel/image of F.
 
+        F.shuffle_map(A,B,C)
+            Args: A, B, C [GradedVectorSpaces]
+                such that F:A*(B*C) --> T
+            Returns [GradedLinearMap]:
+                The shuffled map (A*B)*C-->A*(B*C)-->T
+
     Class Methods:
 
         GradedLinearMap.block(A,B,C,D):
@@ -199,15 +256,6 @@ class GradedLinearMap:
                 The block map with matrix
                     [ A B ]
                     [ C D ]
-
-    Static methods:
-    
-        GradedLinearMap.shuffle_map(A,B,C):
-            Args: A, B, C [GradedVectorSpaces]
-            Returns [GradedLinearMap]:
-                The permutation matrix which realises the isomorphism
-                ( A (x) B ) (x) C ----> A (x) ( B (x) C )
-            of graded triple tensor products.
     '''
     def __init__(self,degree,source,target):
         self.degree=degree
@@ -408,7 +456,25 @@ class GradedLinearMap:
                 for y in x:
                     print(y,end=' ')
             print("\n]\n")
-            
+
+    def shuffle_map(self,A,B,C):
+        '''f is a graded linear map f:A*(B*C)-->W
+        and we want to get the map g:(A*B)*C-->W
+        obtained by precomposing with the canonical shuffle.
+        '''
+        d=self.degree
+        T=self.target
+        if self.source!=A.otimes(B.otimes(C)):
+            print("Tried to shuffle a map with wrong domain.")
+            exit()
+        g=GradedLinearMap(d,(A.otimes(B)).otimes(C),T)
+        for n in self.graded_map:
+            shuffle_array=GradedVectorSpace.shuffle(n,A,B,C)
+            M=self.gr_map(n)
+            g.graded_map[n]=M[:,shuffle_array]
+        return g
+
+
     @classmethod
     def block(cls,A,B,C,D):
         '''Returns a block matrix from four compatible
@@ -439,32 +505,34 @@ class GradedLinearMap:
                       "are incompatible.")
             return None
 
-    @staticmethod
+    '''
+    An old version which doesn't work
     def shuffle_map(A,B,C):
-        '''This function returns the natural graded linear map
+        'This function returns the natural graded linear map
 
         ( A (x) B ) (x) C ----> A (x) ( B (x) C )
 
         The main point of this is that we have implicitly picked a basis
         for all our vector spaces and the basis order is different
         for these two triple tensor products.
-        '''
+        '
         def F(x,y):
             return (A.gr_dim(m1+x))*(B.gr_dim(m2+y))*(C.gr_dim(m3+N-x-y))
 
         def insert_submatrix(N1,N2,top,left):
-            '''Inserts the submatrix N1 into N2 at position (top,left).'''
+            'Inserts the submatrix N1 into N2 at position (top,left).'
             height,width=N1.shape
             N2[top:top+height,left:left+width]=N1
             return N2
-            
         K=A.base
         D=(A.otimes(B)).otimes(C)
         E=A.otimes(B.otimes(C))
+        shuffler=GradedLinearMap(0,D,E)
+        if (not A.graded_dim) or (not B.graded_dim) or (not C.graded_dim):
+            return shuffler
         m1=min(A.graded_dim.keys())
         m2=min(B.graded_dim.keys())
         m3=min(C.graded_dim.keys())
-        shuffler=GradedLinearMap(0,D,E)
         for n in D.graded_dim:
             delta=D.gr_dim(n)
             M=np.zeros(shape=(delta,delta),dtype=int)
@@ -489,7 +557,7 @@ class GradedLinearMap:
             M=insert_submatrix(np.eye(F(x,y),dtype=int),M,Alpha[(x,y)],beta)
             shuffler.graded_map[n]=K.num(M)
         return shuffler
-    
+    '''    
         
 class CochainComplex:
     '''The class of cochain complexes.

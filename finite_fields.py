@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
-import numpy as np
-import rings as ri
+import fields as fi
 import arithmetic as ar
 
 def FF(p):
@@ -41,11 +40,16 @@ def FF(p):
         else:
             print("Can't invert zero!")
             return None
+
+    def ff_neg(x):
+        '''Negation of numbers over Z/p'''
+        a=x.value
+        return p-a
     
     def ff_eq(x,y):
         '''Tests equality of numbers over Z/p'''
         a=x.value
-        if type(y) is ri.Number:
+        if type(y) is fi.Number:
             b=y.value
         else:
             b=y
@@ -63,5 +67,5 @@ def FF(p):
         a=x.value
         return str(a%p)
 
-    return ri.Field(ff_init,ff_add,ff_sub,ff_mul,ff_div,
-                    ff_inv,ff_eq,ff_num,ff_print,p)
+    return fi.Field(ff_init,ff_add,ff_sub,ff_mul,ff_div,
+                    ff_inv,ff_neg,ff_eq,ff_num,ff_print,p)

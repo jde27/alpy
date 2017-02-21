@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
-import numpy as np
-import rings as ri
+import fields as fi
 import arithmetic as ar
 
 def rat_normal_form(a,b):
@@ -60,9 +59,14 @@ def rat_inv(x):
     else:
         print("Cannot invert zero.")
 
+def rat_neg(x):
+    '''Negation of rational numbers'''
+    a,b=x.numerator,x.denominator
+    return -a,b
+        
 def rat_eq(x,y):
     '''Tests equality of rational numbers'''
-    if type(y) is ri.Number:
+    if type(y) is fi.Number:
         if x.numerator==y.numerator and x.denominator==y.denominator:
             # Since rational numbers are stored with their numerator and
             # denominator coprime and the sign in the numerator,
@@ -91,15 +95,15 @@ def rat_print(x):
 
 def QQ():
     '''Defines an instance of the field of rational numbers'''
-    return ri.Field(rat_init,rat_add,rat_sub,rat_mul,rat_div,
-                    rat_inv,rat_eq,rat_num,rat_print,0)
+    return fi.Field(rat_init,rat_add,rat_sub,rat_mul,rat_div,
+                    rat_inv,rat_neg,rat_eq,rat_num,rat_print,0)
     
 '''
 #Some random tests
 '''
 #Q=QQ()
-#x=ri.Number(Q,(5,7))
-#y=ri.Number(Q,(7,5))
+#x=fi.Number(Q,(5,7))
+#y=fi.Number(Q,(7,5))
 #z=Q.num(9)
 #u=Q.num(3)
 #v=Q.num(26)
@@ -126,8 +130,8 @@ def QQ():
 #    for j in range(0,3):
 #        print(D[i][j])
 #print(M.dot(M))
-#x=ri.Number(Q,(5,7))
-#y=ri.Number(Q,(4,9))
+#x=fi.Number(Q,(5,7))
+#y=fi.Number(Q,(4,9))
 #if x-y!=0:
 #    print("Correct")
 #if x-x!=0:

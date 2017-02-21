@@ -7,9 +7,10 @@ import numpy as np
 
 K=FF.FF(2)
 V=gla.GradedVectorSpace(K)
-V.graded_dim={0:1,1:2,2:1,3:1}
-
-gla.GradedLinearMap.shuffle_map(V,V,V).display()
+V.graded_dim={-1:1,0:1,1:2,2:1,3:1}
+W=gla.GradedVectorSpace(K)
+W.graded_dim={0:1,2:1}
+gla.GradedLinearMap.shuffle_map(V,W,W).display()
 
 '''F=gla.GradedLinearMap(1,V,V)
 G=gla.GradedLinearMap(1,V,V)
