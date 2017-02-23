@@ -394,6 +394,7 @@ class LinearMap(AlgebraicStructure):
                 print("Map failed: target doesn't match value:")
                 print(self[i].space)
                 print(self.target)
+                exit()
 
             
     @lazyproperty
@@ -477,10 +478,15 @@ class LinearMap(AlgebraicStructure):
         if not m%2:
             (M,N,d)=(self.source,self.target,self.deg)
             new_map=LinearMap(M.shift(m),N.shift(m),d)
-            new_map.maps[i]=(self.maps[i].shift(m))*K(-1)
+            new_map.maps.update({i: (self.maps[i].shift(m))*K(-1)
+                                 for i in self.maps})
             return new_map
         else:
-            return self
+            (M,N,d)=(self.source,self.target,self.deg)
+            new_map=LinearMap(M.shift(m),N.shift(m),d)
+            new_map.maps.update({i: self.maps[i].shift(m)
+                                 for i in self.maps})
+            return new_map
 
     def rejig_3(self,m=1):
         '''This implements the canonical isomorphism
@@ -618,9 +624,9 @@ class LinearMap(AlgebraicStructure):
             x=candidates[0]
             image.append(x)
             if len(candidates)!=1:
-                m=list(x.components.keys())[0]
+                m=list(F(x).components.keys())[0]
                 new_candidates=candidates[1:]
-                candidates=[(y-(y[m]/x[m])*V[m]).chomp()
+                candidates=[(y-(F(y)[m]/F(x)[m])*x).chomp()
                             for y in new_candidates]
                 candidates=ker_pop()
             else:

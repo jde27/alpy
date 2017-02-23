@@ -231,7 +231,7 @@ class CochainComplex(AlgebraicStructure):
         A=M.cat
         modules={X: Z.otimes(M[X]) for X in M.modules}
         operations={(X,): Z.Id().otimes(M.mu(X))+diff.otimes(M[X].sigma())
-                    for X in A.objects if (X,) in M.operations}
+                    for X in M.modules}
         for word in M.operations:
             if len(word)>1:
                 new_op=Z.Id().otimes(M.mu(*word))
@@ -270,8 +270,10 @@ class A8Module(AlgebraicStructure):
             A=M.cat
             d=len(word)
             X,Y=word[d-1],word[0]
-            if d>1:
+            if d>2:
                 new_domain=(M[X].otimes(A.hom(*word))).flatten(1)
+            elif d==2:
+                new_domain=M[X].otimes(A.hom(*word))
             else:
                 new_domain=M[X]
             return LinearMap(new_domain,M[Y],2-d)
@@ -286,12 +288,15 @@ class A8Module(AlgebraicStructure):
         operations={(X,): M.mu(X).rejig_2()
                     for X in A.objects if (X,) in M.operations}
         for word in M.operations:
+            F=M.operations[word]
             if len(word)!=1:
-                F=M.operations(word)
-                new_source=M.mod(word[-1]).shift(m).otimes(A.hom(*word)).flatten(1)
+                if len(word)==2:
+                    new_source=M.mod(word[-1]).shift(m).otimes(A.hom(*word))
+                else:
+                    new_source=M.mod(word[-1]).shift(m).otimes(A.hom(*word)).flatten(1)
                 new_target=M.mod(word[0]).shift(m)
                 new_op=LinearMap(new_source,new_target,F.deg)
-                new_op.maps.update({i: F[i].shift(m)})
+                new_op.maps.update({i: F[i].shift(m) for i in F.maps})
                 operations.update({word: new_op})
         return A8Module(A,modules,operations)
         
@@ -377,7 +382,7 @@ class A8Module(AlgebraicStructure):
 
     def cpx(self,Q):
         '''Returns the cochain complex M(Q), \mu^1.'''
-        cochains=self.mod(Q)
+        cochains=self[Q]
         differential=self.mu(Q)
         return CochainComplex(cochains,differential)
     
@@ -385,7 +390,10 @@ class A8Module(AlgebraicStructure):
         for X in self.modules:
             print('M(',X,') = ',self[X])
         for word in self.operations:
-            print('M(',word[-1],') * A.hom(',word,') = ')
+            if len(word)==1:
+                print('M(',word[-1],') = ')
+            else:
+                print('M(',word[-1],') * A.hom(',word,') = ')
             self.operations[word].display()
 
     def twist(self,Q):
@@ -411,11 +419,7 @@ class A8Module(AlgebraicStructure):
                          if word[-1]==Q and len(word)==2})
         new_cpts.update({word[:-1]: self.mu(*word).unflatten(0,2)
                          for word in self.operations
-                         if word[-1]==Q and len(word)!=2})
-        print('checking ev')
-        for x in new_cpts:
-            new_cpts[x].verify()
-        print('done')
+                         if word[-1]==Q and len(word)>2})
         ev=A8ModuleMap(T,self,0,new_cpts)
         return ev.cone()
 
@@ -433,7 +437,7 @@ class A8Module(AlgebraicStructure):
             d=len(word)
             M.operations[word]=LinearMap(M.mu(*word).source,M.mu(*word).target,2-d)
             if d==1:
-                M.operations[word].maps.update({x: self.operations[word](})
+                M.operations[word].maps.update({x: self.operations[word](translator})
             else:'''
                 
                 
@@ -451,8 +455,9 @@ class A8ModuleMap(AlgebraicStructure):
 
     def display(self):
         for word in self.components:
+            print('F^',len(word))
             if len(word)==1:
-                print('d_M(',word[-1],') = ')
+                print('M(',word[-1],') = ')
             else:
                 print('M(',word[-1],') * A.hom(',word,') = ')
             self.components[word].display()
@@ -473,11 +478,26 @@ class A8ModuleMap(AlgebraicStructure):
         '''
         (M,N)=(self.source,self.target)
         A=M.cat
-        new_modules={X: M.mod(X).shift().oplus(N.mod(X))
+        new_modules={X: M[X].shift().oplus(N[X])
                      for X in ChainMap(M.modules,N.modules)}
         new_operations={}
         all_keys=ChainMap(self.components,M.operations,N.operations)
         zero=A8ModuleMap(N,M.shift(),1,{})
+        ###Debugging
+        '''for word in all_keys:
+            if len(word)==1:
+                print('Forming cone differential, ',word)
+                print('M.mu')
+                M.mu(*word).display()
+                print('M.mu.rejig')
+                M.mu(*word).rejig_2().display()
+                print('zero')
+                zero.cpt(*word).display()
+                print('ev')
+                self.cpt(*word).rejig_3().display()
+                print('N.mu')
+                N.mu(*word).display()'''
+
         new_operations.update({word:
                                LinearMap.block(
                                    M.mu(*word).rejig_2(),zero.cpt(*word),
@@ -492,9 +512,6 @@ class A8ModuleMap(AlgebraicStructure):
                                for word in all_keys
                                if len(word)>1})
         new_a8mod=A8Module(A,new_modules,new_operations)
-        print('Verifying the cone')
-        new_a8mod.verify()
-        print('Done')
         return new_a8mod
         '''
         for word in all_keys:
