@@ -1,0 +1,123 @@
+#+TITLE: Computing with alpy: quick-start guide
+
+* What is alpy?
+
+Short for "AL-gebra with PY-thon", alpy is (the beginnings of) a
+computer algebra system written in Python, tailored towards
+computations in triangulated A_\infty categories.
+
+Specifically, it allows you to define an A_\infty-category A and to
+perform basic calculations in the triangulated category of
+A_\infty-modules over A.
+
+For example, you can form the Yoneda module
+associated to an object of A and twist it around other objects (that's
+basically all you can do for now).
+
+* Setting up fields and categories
+
+** Fields
+
+The categories are K-linear over a field K and there are modules for
+defining and creating different fields. Pre-defined fields include the
+rational numbers and Z/p, accessed with:
+
+    K = rationals.QQ()
+ or K = finite_fields.FF(p)
+
+You can define your own fields by writing your own module which
+defines numbers in the field and operations for adding, subtracting,
+multiplying, dividing, inverting them etc. together with a function
+for converting integers into field elements.
+
+** A_\infty-categories
+
+There is a pre-defined source of A_\infty categories (over any given
+field K), namely the Fukaya categories of Milnor fibres of 2-variable
+Brieskorn-Pham singularities,
+
+ {(x,y,z_1,...,z_{N-1})\in C^{N+1} : x^p+y^q+z_1^2+...+z_{N-1}^2 = 1},
+
+which can be accessed with:
+
+ A = a_infinity.BP(p,q,K,N).
+
+These are currently only guaranteed to be the correct categories in
+characteristic 2 - I have not been careful with signs in setting up
+the category. If you want to check that a given category A
+(pre-defined or your own) satisfies the A_\infty-equations, you can
+use:
+
+  A.verify()
+
+The objects of the categories can be indexed using an arbitrary set,
+but the pre-defined categories are indexed by integers (see
+[[#brieskorn-pham]] if you want to know which objects are which in these
+pre-defined categories).
+
+* Working with modules
+
+** Yoneda modules
+
+Given an A_\infty category A, to get the Yoneda module associated to
+the object X, use
+
+  A.yoneda(X)
+
+So, for example, if X is the object 5 in BP(3,4,K,N),
+
+  A.yoneda(5)
+
+will return the corresponding Yoneda module.
+
+** Twists
+
+To twist a module M around an object X, use
+
+  M.twist(X)
+
+** Verifying modules
+
+The code is still relatively untested, so while I hope that performing
+standard operations on modules returns modules, I do not guarantee it!
+You can check for yourself by verifying that your newly-minted module
+satsifies the A_\infty-module equations:
+
+  M.verify()
+
+* Brieskorn-Pham Milnor fibres
+:PROPERTIES:
+:CUSTOM_ID: brieskorn-pham
+:END:
+
+Consider a directed planar graph with vertices V and arrows A. We
+define an A_\infty category whose objects are the vertices V and whose
+morphism spaces hom(X,Y) are:
+
++ if X=Y then hom(X,X) = K in degrees 0 and N
++ if there is an arrow X-->Y,
+  + hom(X,Y) = K in degree 0
+  + hom(Y,X) = K in degree N
++ otherwise, hom(X,Y)=0
+
+There are only \mu^2-products in this category. They can be completely
+determined by the conditions that:
+
++ hom(X,X) is the cohomology ring of the N-sphere,
++ the category is N-Calabi-Yau,
++ if there is a directed triangle in the graph:
+  X-a->Y-b->Z and X-c->Z
+  then c=\mu^2(b,a).
+
+The Brieskorn-Pham graph is defined by 
+
+1 ---> 2 ---> 3 --> ... ---> (p-1)
+|      |      |                |
+V      V      V                V
+p --> p+1 -> p+2 -> ... --> 2(p-1)
+|
+V
+.
+|
+V
+(q-1)......
