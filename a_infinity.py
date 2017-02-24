@@ -2,19 +2,99 @@
 
 import fields as fi
 from linear_algebra import *
-from itertools import permutations as perm
-from itertools import combinations_with_replacement as comb
 
 class A8Category(AlgebraicStructure):
+    '''The class of A_\infty-categories.
+
+    USAGE:
+
+        A=A8Category(K,objects,morphisms,operations)
+    
+    creates an A_\infty-category over the field K, with given objects,
+    morphisms and operations.
+
+    ATTRIBUTES:
+
+        A.field [fi.Field]
+
+            The field over which A is defined.
+
+        A.objects [set]
+
+            A set of objects (usually integers, but could be
+            anything).
+
+        A.morphisms [dict] {(X,Y): VectorSpace}
+
+            A dictionary indexed by 2-tuples from the set
+            A.objects. The entry A.morphisms[(X,Y)] is the space of
+            morphisms in A from X to Y. This can also be accessed
+            using:
+
+                A[(X,Y)]
+
+            which will return the zero vector space
+            if A.morphisms[(X,Y)] has not been set.
+
+        A.operations [dict] {(X_0,...,X_d): LinearMap}
+
+            A dictionary indexed by (d+1)-tuples from the set
+            A.objects. The entry A.operations[(X_0,...,X_d)] encodes
+            the A_\infty-operation
+
+              \mu_A^d: A[(X_{d-1},X_d)] (x) ... (x) A[(X_0,X_1)]
+                                ----> A[(X_0,X_d)]
+
+            This can also be accessed using
+
+                A.mu(X_0,...,X_d)
+
+            which will return 0 if the operation has not been set.
+
+    METHODS:
+
+        A[(X,Y)]
+
+            Returns A.morphisms[(X,Y)] if defined or else zero.
+
+        A.hom(X_0,...,X_d)
+
+            Returns the tensor product:
+
+                A[(X_{d-1},X_d)] (x) ... (x) A[(X_0,X_1)]
+
+            This is indexed by d-tuples of basis elements.
+
+        A.mu(X_0,...,X_d)
+
+            Returns A.operations[(X_0,...,X_d)] if defined or else
+            zero.
+
+        A.verify()
+
+            Returns true if the A_\infty-equations are satisfied by
+            A. Otherwise raises an exception.
+
+        A.yoneda(X)
+
+            Returns the A_\infty Yoneda module associated to the
+            object X.
+
+    '''
+
     _required_fields=['field','objects','morphisms','operations']
 
     def __getitem__(self,i):
+        '''Returns A.morphisms[i] if defined and zero otherwise.'''
         if i in self.morphisms:
             return self.morphisms[i]
         else:
             return VectorSpace(self.field)
         
     def hom(self,*word):
+        '''Returns the tensor product:
+        A[(X_{d-1},X_d)] (x) ... (x) A[(X_0,X_1)]
+        '''
         d=len(word)-1
         A,K=self,self.field
         tensor_list=()
@@ -33,6 +113,8 @@ class A8Category(AlgebraicStructure):
             return LinearMap(A.hom(*word),A[(word[0],word[d])],2-d)
 
     def verify(self):
+        '''Returns true if the A_\infty-equations hold for A and raises an
+        exception otherwise.'''
         A=self
         super_words=set()
         for word in A.operations:
@@ -74,14 +156,6 @@ class A8Category(AlgebraicStructure):
                 for M in range(1,d-N+1):
                     associativity_test+=term(N,M)
             return (associativity_test==LinearMap(A.hom(*word),A[(word[0],word[d])],3-d))
-        
-        '''# We now have a better implementation
-        max_eq=1+max([len(word) for word in A.operations])
-        super_words=[]
-        for i in range(2,max_eq+1):
-            for choice in comb(A.objects,i):
-                for word in set(perm(choice)):
-                    super_words.append(word)'''
 
         truth_dictionary={}
         for word in super_words:
@@ -89,9 +163,10 @@ class A8Category(AlgebraicStructure):
         if not all(truth_dictionary):
             raise ValueError('A_\infty equations not satisfied')
         else:
-            print('A_\infty equations hold')
+            return True
 
     def yoneda(self,Q):
+        '''Returns the Yoneda A_\infty-module over A associated to the object X.'''
         A=self
         if Q in A.objects:
             modules={X: A[(X,Q)] for X in A.objects if (X,Q) in A.morphisms}
@@ -102,22 +177,45 @@ class A8Category(AlgebraicStructure):
         else:
             raise ValueError('Cannot form Yoneda module: ',
                              Q,' is not an object of the category ',A)
-            return None
-
 
 class DynkinGraph():
+    '''The class of Dynkin graphs.
+
+    Input a directed graph in the form:
+
+        V - a set
+        A - a dictionary of sets
+
+    Example:
+
+        V={'A','B','C'}
+        A={'A':{'B','C'},'B':{'C'}}
+        G=DynkinGraph(V,A)
+
+    encodes the graph with three vertices A,B,C and arrows
+    from A to B and C and from B to C.
+
+    METHODS:
+
+        G.categorify(K,N)
+
+            Produces a Calabi-Yau-N A_\infty-category over the field K
+            whose objects are in bijection with G.vertices, whose
+            morphisms are determined by G.arrows in the following way:
+
+                hom(X,X) = H^*(S^N;K)
+                hom(X,Y) = K in degree 0 if Y is in G.arrows[X]
+                hom(Y,X) = K in degree N if Y is in G.arrows[X]
+
+            and whose operations are uniquely determined by the
+            conditions that the category is CY-N and that a triangle
+            X-->Y-->Z, X-->Z in the Dynkin graph gives a nontrivial
+            composition
+
+                hom(Y,Z) (x) hom(X,Y) --> hom(X,Z).
+    '''
+
     def __init__(self,V,A):
-        '''
-        Input a directed graph in the form:
-            V - a set
-            A - a dictionary of sets
-            
-        Example:
-            V={'A','B','C'}
-            A={'A':{'B','C'},'B':{'C'}}
-        encodes the graph with three vertices A,B,C and arrows
-        from A to B and C and from B to C.
-        '''
         self.vertices,self.arrows=V,A
         
     def categorify(self,K,N):
@@ -133,9 +231,10 @@ class DynkinGraph():
                            (0,1):V[1]})
             return V,F
         
-        def pt(K,N):
+        def pt(K,D):
+            '''Returns the field K in degree D'''
             V=VectorSpace(K)
-            V.basis.update({0:N})
+            V.basis.update({0:D})
             return V
         
         objects=self.vertices
@@ -144,17 +243,19 @@ class DynkinGraph():
         operations={}
 
         A=A8Category(K,objects,morphisms,operations)
-        
+
+        # Initialise endomorphism spaces to be H^*(S^N;K)
         for X in objects:
             A.morphisms[(X,X)],A.operations[(X,X,X)]=sph(K,N)
-            
+        # Initialise morphism spaces between objects
+        # connected by arrows
         A.morphisms.update({(X,Y): pt(K,0)
                           for X in objects
                           for Y in arrow[X]})
         A.morphisms.update({(Y,X): pt(K,N)
                           for X in objects
                           for Y in arrow[X]})
-        
+        # Add in operations to ensure the CY condition holds
         for X in objects:
             for Y in arrow[X]:
                 F={}
@@ -166,7 +267,7 @@ class DynkinGraph():
                     else:
                         F[triple].maps.update({(0,0):V[0]})
                 A.operations.update(F)
-                
+        # Add in operations corresponding to triangles in the graph
         for X in objects:
             for Y in arrow[X]:
                 for Z in arrow[Y]:
@@ -190,10 +291,48 @@ def BP(p,q,K,N):
 
     
 class CochainComplex(AlgebraicStructure):
+    '''The class of cochain complexes.
+
+    USAGE:
+
+        Z=CochainComplex(cochains,differential)
+    
+    ATTRIBUTES:
+
+        cochains [VectorSpace]
+
+        differential [LinearMap]
+
+    METHODS:
+
+        Z.cohomology()
+
+            Returns the cohomology of Z as a dictionary of the form:
+
+                {i: rank of H^i(Z)}
+
+        Z.display()
+
+            Displays the space of cochains and the
+            differential. Mostly a debugging tool.
+
+        Z.verify()
+
+            Returns true if d^2=0, otherwise raises exception.
+
+        Z.otimes(M)
+
+            Returns the tensor product of a cochain complex with an
+            A_\infty-module M.
+
+    '''
+
     _required_fields=['cochains','differential']
 
     def cohomology(self):
-        '''Returns the cohomology of the cochain complex (Z,d).'''
+        '''Returns the cohomology of the cochain complex as a dictionary of
+        the form {i: rank of H^i(Z)}
+        '''
         G=self.cochains.graded_pieces # Dictionary of Z_n, graded pieces of Z
         graded_maps={} # Dictionary to store restriction d_n of d to Z_n
         kernels={}     # Dictionary to store kernels of d_n
@@ -210,10 +349,12 @@ class CochainComplex(AlgebraicStructure):
         return cohom
 
     def display(self):
+        '''Prints the space of cochains and the differential.'''
         print(self.cochains)
         self.differential.display()
     
     def verify(self):
+        '''Returns true if d^2=0 and raises an exception otherwise.'''
         d=self.differential
         Z=self.cochains
         d.verify()
@@ -221,11 +362,11 @@ class CochainComplex(AlgebraicStructure):
         if d.circ(d) != zero_map:
             raise TypeError('Not a cochain complex')
         else:
-            print('This is a cochain complex')
+            return True
 
     def otimes(self,M):
         '''Returns the tensor product of a chain complex with
-        with an A_\infty-module
+        with an A_\infty-module M.
         '''
         Z,diff=self.cochains,self.differential
         A=M.cat
@@ -239,13 +380,109 @@ class CochainComplex(AlgebraicStructure):
         return A8Module(A,modules,operations)
                 
 class A8Module(AlgebraicStructure):
+    '''The class of A_\infty-modules.
+
+    USAGE:
+
+        M=A8Module(A,modules,operations)
+
+    creates an A_\infty-module over the A_\infty-category A with
+    specified module-spaces and operations.
+
+    ATTRIBUTES:
+
+        M.cat [A8Category]
+
+            The category over which this module is defined.
+
+        M.field [fi.Field]
+
+            The field over which the module is defined (inherited from
+            underlying category).
+
+        M.modules [dict] {X: VectorSpace}
+
+            A dictionary indexed by A.objects. The entry M.modules[X]
+            is the module M at the object X.  This can also be
+            accessed using:
+
+                M[X]
+
+            which will return the zero vector space
+            if M.modules[(X,Y)] has not been set.
+
+        M.operations [dict] {(X_0,...,X_{d-1}): LinearMap}
+
+            A dictionary indexed by d-tuples from the set
+            A.objects. The entry M.operations[(X_0,...,X_{d-1})]
+            encodes the A_\infty module-operation
+
+        \mu_M^d: M[X_{d-1}] (x) A[(X_{d-2},X_{d-1})] (x) ... (x) A[(X_0,X_1)]
+                                    ----> M[X_0]
+
+            This can also be accessed using
+
+                M.mu(X_0,...,X_{d-1})
+
+            which will return 0 if the operation has not been set.
+
+    METHODS:
+
+        M[X]
+
+            Returns M.modules[X] if defined or else zero.
+
+        M.mu(X_0,...,X_d)
+
+            Returns M.operations[(X_0,...,X_d)] if defined or else
+            zero.
+
+        M.display()
+
+        M.verify()
+
+            Returns true if the A_\infty-module equations are
+            satisfied by M. Otherwise raises an exception.
+
+        M.simplify()
+
+            Returns the same A_\infty-module but re-indexes the bases
+            for its vector spaces to make it more compact.
+
+        M.cpx(X)
+
+            Returns the cochain complex M[X] with differential
+            M.mu(X).
+
+        M.total()
+
+            Returns the direct sum of cohomology groups:
+
+                (+)_{X in A.objects} M.cpx(X).cohomology()
+
+        M.width()
+
+            Returns the difference between the maximal and minimal
+            grading present in M.total().
+
+        M.shift(m=1)
+
+            Returns M shifted down in degree by m.
+
+        M.twist(X)
+
+            Returns the twist of M around the object X.
+    '''
+
     _required_fields=['cat','modules','operations']
 
     @lazyproperty
     def field(self):
+        '''Returns the field of definition of the module.'''
         return self.cat.field
     
     def __getitem__(self,X):
+        '''M[X] returns M.modules[X] if defined and zero otherwise.'''
         M=self
         K=M.field
         if X in M.modules:
@@ -253,16 +490,9 @@ class A8Module(AlgebraicStructure):
         else:
             return VectorSpace(K)
 
-    def mod(self,Q):
-        if Q in self.modules:
-            return self.modules[Q]
-        else:
-            # If we haven't bothered to define module[X]
-            # then it's the zero vector space, which can be created
-            # like this:
-            return VectorSpace(self.field)
-
     def mu(self,*word):
+        '''M.mu(X_0,...,X_{d-1}) returns M.operations[(X_0,...,X_{d-1})] if
+        defined and zero otherwise.'''
         M=self
         if word in M.operations:
             return M.operations[word]
@@ -278,37 +508,20 @@ class A8Module(AlgebraicStructure):
                 new_domain=M[X]
             return LinearMap(new_domain,M[Y],2-d)
 
-    def shift(self,m=1):
-        '''Returns the A_\infty module shifted in degree by m.
+    def display(self):
+        '''Displays the modules and operations of M.'''
+        for X in self.modules:
+            print('M(',X,') = ',self[X])
+        for word in self.operations:
+            if len(word)==1:
+                print('M(',word[-1],') = ')
+            else:
+                print('M(',word[-1],') * A.hom(',word,') = ')
+            self.operations[word].display()
 
-        This is achieved by tensoring with K[m].
-        '''
-        M,A=self,self.cat
-        modules={X: M[X].shift(m) for X in M.modules}
-        operations={(X,): M.mu(X).rejig_2()
-                    for X in A.objects if (X,) in M.operations}
-        for word in M.operations:
-            F=M.operations[word]
-            if len(word)!=1:
-                if len(word)==2:
-                    new_source=M.mod(word[-1]).shift(m).otimes(A.hom(*word))
-                else:
-                    new_source=M.mod(word[-1]).shift(m).otimes(A.hom(*word)).flatten(1)
-                new_target=M.mod(word[0]).shift(m)
-                new_op=LinearMap(new_source,new_target,F.deg)
-                new_op.maps.update({i: F[i].shift(m) for i in F.maps})
-                operations.update({word: new_op})
-        return A8Module(A,modules,operations)
-        
-        
-        '''K=self.field
-        cochains=VectorSpace(K)
-        cochains.basis.update({0:-m})
-        differential=LinearMap(cochains,cochains,1)
-        Z=CochainComplex(cochains,differential)
-        return Z.otimes(self)'''
-        
     def verify(self):
+        '''Returns true if the A_\infty-module equations hold for M and raises
+        an exception otherwise.'''
         M,A=self,self.cat
         super_words=set()
         for word in M.operations:
@@ -378,31 +591,106 @@ class A8Module(AlgebraicStructure):
         if not all(truth_dictionary):
             raise ValueError('A_\infty equations not satisfied')
         else:
-            print('A_\infty-module equations hold')
+            return True
 
-    def cpx(self,Q):
-        '''Returns the cochain complex M(Q), \mu^1.'''
-        cochains=self[Q]
-        differential=self.mu(Q)
-        return CochainComplex(cochains,differential)
-    
-    def display(self):
+    def simplify(self):
+        '''After repeatedly twisting modules, the bases of the resulting
+        modules are indexed by (often messy) nested tuples:
+
+            M.simplify()
+
+        will return the A_\infty-module M but with all its vector spaces
+        indexed simply by integers.
+        '''
+        M=self
+        N=A8Module(self.cat,{},{})
+        translator={}
         for X in self.modules:
-            print('M(',X,') = ',self[X])
-        for word in self.operations:
-            if len(word)==1:
-                print('M(',word[-1],') = ')
-            else:
-                print('M(',word[-1],') * A.hom(',word,') = ')
-            self.operations[word].display()
+            N.modules[X]=VectorSpace(N.field)
+            translator[X]=({i: j for j,i in
+                            enumerate(list(M[X].basis.keys()))})
+            N.modules[X].basis.update({translator[X][i]: M[X].basis[i]
+                                       for i in translator[X]})
+       
+        def tr_bas(Y,*i):
+            return (translator[Y][i[0]],)+i[1:]
 
-    def twist(self,Q):
-        '''Returns the twist of the module M around the object Q.
+        def tr_fun(F,*word):
+            X=word[-1]
+            d=len(word)
+            Z=word[0]
+            new_maps={}
+            for i in F.maps:
+                new_sp=N.mu(*word).target
+                if d==1:
+                    new_idx=translator[X][i]
+                else:
+                    new_idx=tr_bas(X,*i)
+                new_cpts={translator[Z][j]: F.maps[i].components[j]
+                          for j in F.maps[i].components}
+                new_maps[new_idx]=Vector(new_sp,new_cpts)
+            return new_maps
+        
+        for word in M.operations:
+            d=len(word)
+            N.operations[word]=LinearMap(N.mu(*word).source,N.mu(*word).target,2-d)
+            N.operations[word].maps.update(tr_fun(M.operations[word],*word))
+
+        return N
+
+    def cpx(self,X):
+        '''Returns the cochain complex M(X), \mu^1.'''
+        cochains=self[X]
+        differential=self.mu(X)
+        return CochainComplex(cochains,differential)
+
+    def total(self):
+        '''Given an A_\infty-module M over a category A,
+        M.total() returns the direct sum of Ext-groups
+        H^*(M[X],mu^1) over all objects X in A.
+        '''
+        A,M=self.cat,self
+        coh_gps={X: M.cpx(X).cohomology() for X in A.objects}
+        total_coh={i: sum(coh_gps[X].get(i,0)
+                          for X in coh_gps)
+                   for i in ChainMap(*(coh_gps[X] for X in coh_gps))}
+        answer={i: total_coh[i] for i in total_coh if total_coh[i]!=0}
+        return answer
+
+    def width(self):
+        '''Returns the difference between the maximal and minimal degree of an
+        element in M.total().
+        '''
+        keys=self.total().keys()
+        return max(keys)-min(keys)
+
+    def shift(self,m=1):
+        '''Returns the A_\infty module shifted in degree by m.'''
+        M,A=self,self.cat
+        modules={X: M[X].shift(m) for X in M.modules}
+        operations={(X,): M.mu(X).rejig_2()
+                    for X in A.objects if (X,) in M.operations}
+        for word in M.operations:
+            F=M.operations[word]
+            if len(word)!=1:
+                if len(word)==2:
+                    new_source=M[word[-1]].shift(m).otimes(A.hom(*word))
+                else:
+                    new_source=M[word[-1]].shift(m).otimes(A.hom(*word)).flatten(1)
+                new_target=M[word[0]].shift(m)
+                new_op=LinearMap(new_source,new_target,F.deg)
+                new_op.maps.update({i: F[i].shift(m) for i in F.maps})
+                operations.update({word: new_op})
+        return A8Module(A,modules,operations)
+
+    
+    def twist(self,X):
+        '''Returns the twist of the module M around the object X.
 
         This is obtained in several steps:
         1. We form
-            (a) the Yoneda module  Y = yoneda(Q)
-            (b) the chain complex  Z = (M(Q), \mu^1)
+            (a) the Yoneda module  Y = yoneda(X)
+            (b) the chain complex  Z = (M(X), \mu^1)
             (c) the tensor product T = Z (x) Y
         2. We form the canonical evaluation morphism, ev:
 
@@ -410,50 +698,90 @@ class A8Module(AlgebraicStructure):
         
         3. We return the cone on ev.
         '''
-        Y=self.cat.yoneda(Q)
-        Z=self.cpx(Q)
+        Y=self.cat.yoneda(X)
+        Z=self.cpx(X)
         T=Z.otimes(Y)
         new_cpts={}
         new_cpts.update({word[:-1]: self.mu(*word)
                          for word in self.operations
-                         if word[-1]==Q and len(word)==2})
+                         if word[-1]==X and len(word)==2})
         new_cpts.update({word[:-1]: self.mu(*word).unflatten(0,2)
                          for word in self.operations
-                         if word[-1]==Q and len(word)>2})
+                         if word[-1]==X and len(word)>2})
         ev=A8ModuleMap(T,self,0,new_cpts)
-        return ev.cone()
-
-    '''def simplify(self):
-        M=A8Module(self.cat,{},{})
-        translator={}
-        for X in self.modules:
-            M.modules[X]=VectorSpace(M.field)
-            V=self.mod(X)
-            translator[X]=({x: y for x,y in
-                            enumerate(list(V.basis.keys()))})
-            M.modules[X].basis.update({x: V.basis[translator[x]]
-                                       for x in translator[X]})
-        for word in self.operations:
-            d=len(word)
-            M.operations[word]=LinearMap(M.mu(*word).source,M.mu(*word).target,2-d)
-            if d==1:
-                M.operations[word].maps.update({x: self.operations[word](translator})
-            else:'''
-                
-                
+        return ev.cone().simplify()
 
 class A8ModuleMap(AlgebraicStructure):
+    '''The class of A_\infty pre-module homomorphisms.
+
+    USAGE:
+
+        e = A8ModuleMap(source,target,deg,components)
+
+    creates an A_\infty pre-module map of degree deg from the module
+    source to the module target, with the given components.
+
+    ATTRIBUTES:
+
+        e.source, e.target [A8Modules]
+
+            The source and target of e.
+
+        e.deg [int]
+
+            The degree of e.
+
+        e.components [dict] {(X_0,...,X_{d-1}): LinearMap}
+
+            A dictionary indexed by d-tuples from the set
+            A.objects. The entry e.components[(X_0,...,X_{d-1})]
+            encodes the component
+
+     e^d: source(X_{d-1}) (x) A[(X_{d-1},X_d)] (x) ... (x) A[(X_0,X_1)]
+                                    ----> target[(X_0,X_d)]
+
+            of the pre-module map.
+
+            This can also be accessed using
+
+                e.cpt(X_0,...,X_{d-1})
+
+            which will return 0 if the component has not been set.
+    
+
+    METHODS:
+
+        e.cpt(X_0,...,X_{d-1})
+
+            Returns e.components[(X_0,...,X_{d-1})] if defined and
+            zero otherwise.
+
+        e.display()
+
+            Displays the components of e (mostly for debugging
+            purposes).
+
+        e.cone()
+
+            Returns the cone on the pre-module homomorphism e; if e is
+            a module map (i.e. closed) then this cone is an A_\infty
+            module.
+
+    Currently there is no method for verifying if e is closed.
+    '''
     _required_fields=['source','target','deg','components']
 
     def cpt(self,*word):
+        '''Returns e.components[word] if defined and zero otherwise.'''        
         if word in self.components:
             return self.components[word]
         else:
             cpt_source=self.source.mu(*word).source
-            cpt_target=self.target.mod(word[0])
+            cpt_target=self.target[word[0]]
             return LinearMap(cpt_source,cpt_target,1+self.deg-len(word))
 
     def display(self):
+        '''Displays the components of e.'''
         for word in self.components:
             print('F^',len(word))
             if len(word)==1:
@@ -483,21 +811,6 @@ class A8ModuleMap(AlgebraicStructure):
         new_operations={}
         all_keys=ChainMap(self.components,M.operations,N.operations)
         zero=A8ModuleMap(N,M.shift(),1,{})
-        ###Debugging
-        '''for word in all_keys:
-            if len(word)==1:
-                print('Forming cone differential, ',word)
-                print('M.mu')
-                M.mu(*word).display()
-                print('M.mu.rejig')
-                M.mu(*word).rejig_2().display()
-                print('zero')
-                zero.cpt(*word).display()
-                print('ev')
-                self.cpt(*word).rejig_3().display()
-                print('N.mu')
-                N.mu(*word).display()'''
-
         new_operations.update({word:
                                LinearMap.block(
                                    M.mu(*word).rejig_2(),zero.cpt(*word),
@@ -513,29 +826,3 @@ class A8ModuleMap(AlgebraicStructure):
                                if len(word)>1})
         new_a8mod=A8Module(A,new_modules,new_operations)
         return new_a8mod
-        '''
-        for word in all_keys:
-            (new_source,new_target)=(the_cone.mu(*word).source,
-                                     the_cone.mu(*word).target)
-            d=len(word)
-            the_cone.operations[word]=LinearMap(new_source,new_target,2-d)
-            new_keys=ChainMap(M.operations[word].maps,self.components[word].maps)
-            new_ops={}
-            new_ops.update({(('a',i[0]),)+i[1:]:
-                            M.mu(*word)[i].oplus(self.cpt(*word)[i])
-                            for i in new_keys if len(i)>1})
-            new_ops.update({('a',i[0]):
-                            M.mu(*word)[i].oplus(self.cpt(*word)[i])
-                            for i new_keys if len(i)==1})
-            new_ops.update({(('b',j[0]),)+j[1:]:
-                            Vector(M[word[-1],{}).oplus(N.mu(*word)[j])
-                            for j in N.operations[word].maps
-                            if len(j)>1})
-            new_ops.update({('b',j[0]):
-                            Vector(M[word[-1]],{}).oplus(N.mu(*word)[j])
-                            for j in N.operations[word].maps
-                            if len(j)==1})
-            the_cone.operations[word].maps.update(new_ops)
-        '''
-
-

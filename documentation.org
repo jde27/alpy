@@ -1,4 +1,6 @@
 #+TITLE: Computing with alpy: quick-start guide
+#+AUTHOR: Jonny Evans
+#+LICENSE: GNU Public License
 
 * What is alpy?
 
@@ -13,6 +15,12 @@ A_\infty-modules over A.
 For example, you can form the Yoneda module
 associated to an object of A and twist it around other objects (that's
 basically all you can do for now).
+
+We stick to the notation and conventions established in Seidel's book
+"Fukaya categories and Picard-Lefschetz theory", and refer to Chapter
+1 of that book for an action-packed whistlestop introduction to the
+theory of A_\infty-categories.
+
 
 * Setting up fields and categories
 
@@ -55,6 +63,7 @@ but the pre-defined categories are indexed by integers (see
 [[#brieskorn-pham]] if you want to know which objects are which in these
 pre-defined categories).
 
+
 * Working with modules
 
 ** Yoneda modules
@@ -85,14 +94,42 @@ satsifies the A_\infty-module equations:
 
   M.verify()
 
-* Brieskorn-Pham Milnor fibres
-:PROPERTIES:
-:CUSTOM_ID: brieskorn-pham
-:END:
+** Ext-groups
+
+Given an A_\infty-module M over an A_\infty category A, each object X
+in A gives you a cochain complex M[X] with differential M.mu(X) along
+with higher products M.mu(X_0,...,X_{d-1}) (e.g. the action of A on
+M). Often, however, all you want to know is the cohomology of this
+cochain complex. The cochain complex can be returned with
+
+  M.cpx(X)
+
+and the cohomology can be computed using
+
+  M.cpx(X).cohomology()
+
+The result is simply a Python dictionary like this:
+
+  {0: 2, 1: 7, 8: 3}
+
+which would mean that
+
+  dim(H^0) = 2,
+  dim(H^1) = 7,
+  dim(H^8) = 3.
+
+To compute the total Ext-group (i.e the direct sum of all these
+cohomology groups over all objects X in A), use:
+
+  M.total()
+
+* Pre-defined A_\infty categories
+
+** A_\infty categories from directed planar graphs
 
 Consider a directed planar graph with vertices V and arrows A. We
 define an A_\infty category whose objects are the vertices V and whose
-morphism spaces hom(X,Y) are:
+morphism spaces hom(X,Y) are as follows:
 
 + if X=Y then hom(X,X) = K in degrees 0 and N
 + if there is an arrow X-->Y,
@@ -109,15 +146,41 @@ determined by the conditions that:
   X-a->Y-b->Z and X-c->Z
   then c=\mu^2(b,a).
 
-The Brieskorn-Pham graph is defined by 
+** Fukaya categories of Brieskorn-Pham Milnor fibres
+:PROPERTIES:
+:CUSTOM_ID: brieskorn-pham
+:END:
 
-1 ---> 2 ---> 3 --> ... ---> (p-1)
-|      |      |                |
-V      V      V                V
-p --> p+1 -> p+2 -> ... --> 2(p-1)
-|
-V
-.
-|
-V
-(q-1)......
+Consider the polynomial F=x^p+y^q+z_1^2+...+z_{N-1}^2. The zero-locus
+F=0 of this polynomial is called a Brieskorn-Pham (BP) singularity,
+and its Milnor fibre is the (complex) N-dimensional affine variety
+defined by F=1. Milnor proved that the Milnor fibre of any
+hypersurface singularity of complex dimension N admits a deformation
+retract onto a collection of (real) N-dimensional Lagrangian spheres
+called the vanishing cycles. In the case of a BP singularity, one can
+find representative vanishing cycles which intersect pairwise in
+either zero or one point according to the following pattern:
+
+     1 ---------> 2 ------> 3 --> ... ---> (p-1)
+     | \          | \       | \              |
+     |  +----__   |  +--_   |                |
+     |         \  |      \  |             \  |
+     V          > V       > V              > V
+     p --------> p+1 --->  p+2 -> ... --> 2(p-1)
+     | \          | \       | \              |
+     V            V         V                V
+    ...          ...       ...              ...
+     |            |         |             \  |
+     V            V         V              > V
+1+(p-1)(q-2) -->...................---> (p-1)(q-1)
+
+where each vertex denotes a vanishing cycle and each directed arrow
+indicates an intersection point (the direction of the arrow encodes
+information about the Floer intersection index of this intersection
+point). Namely, we can choose gradings on the Lagrangian vanishing
+cycles to ensure that, if there is an arrow X-->Y, the unique
+intersection point between X and Y has grading 0 when considered in
+the Floer complex hom(X,Y) and grading N when considered in the Floer
+complex hom(Y,X). The subcategory of the Fukaya category of the Milnor
+fibre comprising these vanishing cycles is now precisely the category
+associated to this directed planar graph.
