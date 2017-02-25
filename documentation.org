@@ -21,7 +21,6 @@ We stick to the notation and conventions established in Seidel's book
 1 of that book for an action-packed whistlestop introduction to the
 theory of A_\infty-categories.
 
-
 * Setting up fields and categories
 
 ** Fields
@@ -62,7 +61,6 @@ The objects of the categories can be indexed using an arbitrary set,
 but the pre-defined categories are indexed by integers (see
 [[#brieskorn-pham]] if you want to know which objects are which in these
 pre-defined categories).
-
 
 * Working with modules
 
@@ -122,6 +120,11 @@ To compute the total Ext-group (i.e the direct sum of all these
 cohomology groups over all objects X in A), use:
 
   M.total()
+
+To compute the difference between the maximal and minimal degrees in
+which cohomology is supported, use:
+
+  M.width()
 
 * Pre-defined A_\infty categories
 
