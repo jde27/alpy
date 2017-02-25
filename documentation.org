@@ -12,13 +12,13 @@ Specifically, it allows you to define an A_\infty-category A and to
 perform basic calculations in the triangulated category of
 A_\infty-modules over A.
 
-For example, you can form the Yoneda module
-associated to an object of A and twist it around other objects (that's
-basically all you can do for now).
+For example, you can form the Yoneda module associated to an object of
+A and twist it around other objects (that's basically all you can do
+for now).
 
 We stick to the notation and conventions established in Seidel's book
 "Fukaya categories and Picard-Lefschetz theory", and refer to Chapter
-1 of that book for an action-packed whistlestop introduction to the
+1 of that book for an action-packed, whistlestop introduction to the
 theory of A_\infty-categories.
 
 * Setting up fields and categories
@@ -40,18 +40,29 @@ for converting integers into field elements.
 ** A_\infty-categories
 
 There is a pre-defined source of A_\infty categories (over any given
-field K), namely the Fukaya categories of Milnor fibres of 2-variable
-Brieskorn-Pham singularities,
+field K) associated to directed planar graphs. You can encode a
+directed graph with
+
+  G=DynkinGraph({1,2,3,4},{1:{2,3,4}, {2:3}, {3:4}})
+
+which would give a graph with four vertices 1,2,3,4 and arrows:
+
+1-->2, 1-->3, 1-->4, 2-->3, 3-->4.
+
+You can access the associated category with G.categorify(). In good
+cases, these categories coincide with the Fukaya categories of Milnor
+fibres of 2-variable Brieskorn-Pham singularities,
 
  {(x,y,z_1,...,z_{N-1})\in C^{N+1} : x^p+y^q+z_1^2+...+z_{N-1}^2 = 1},
 
-which can be accessed with:
+and can be accessed with:
 
- A = a_infinity.BP(p,q,K,N).
+ A = BP(p,q,K,N).
 
 These are currently only guaranteed to be the correct categories in
 characteristic 2 - I have not been careful with signs in setting up
-the category. If you want to check that a given category A
+the category; moreover, we only know that this description of the
+category holds when N>2. If you want to check that a given category A
 (pre-defined or your own) satisfies the A_\infty-equations, you can
 use:
 
@@ -187,3 +198,39 @@ the Floer complex hom(X,Y) and grading N when considered in the Floer
 complex hom(Y,X). The subcategory of the Fukaya category of the Milnor
 fibre comprising these vanishing cycles is now precisely the category
 associated to this directed planar graph.
+* Example session
+
+Start a Python session and import the following:
+
+  from a_infinity import *
+
+You will need to create a field to work over, and so import whichever
+field-related modules you need:
+
+  import finite_fields as ff
+  import rationals as QQ
+
+Now create a field and an A_\infty-category as desired:
+
+  K=QQ.QQ()  # Would create a copy of the rational numbers
+  L=ff.FF(2) # Would create a copy of Z/2
+
+  A=BP(3,5,K,2)
+
+(for example, this would create a copy of the Fukaya category (over K)
+of the Milnor fibre x^p+y^q+z^2=1).
+
+Now create some A_\infty-modules and start twisting them:
+
+  M=A.yoneda(1)
+  w=[2,3,4,1,4,5,2,6]
+  for i in w:
+    M=M.twist(i)
+  print(M.total())
+
+This would return the total ext-group of
+
+  t_6 t_2 t_5 t_4 t_1 t_4 t_3 t_2(M)
+
+where M is the Yoneda module corresponding to the object 1 and t_k is
+the twist functor around object k.
