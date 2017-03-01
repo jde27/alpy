@@ -178,22 +178,31 @@ class A8Category(AlgebraicStructure):
             raise ValueError('Cannot form Yoneda module: ',
                              Q,' is not an object of the category ',A)
 
+    def total_yoneda(self):
+        total=A8Module(self,{},{})
+        for X in self.objects:
+            total=(total.oplus(self.yoneda(X))).simplify()
+        return total
+        
 class DynkinGraph():
     '''The class of Dynkin graphs.
 
     Input a directed graph in the form:
 
         V - a set
-        A - a dictionary of sets
+        A - a dictionary of dictionaries
+            {source1: {target1:grading of arrow1,...,targetn:grading of arrow n},
+             source2: {target1:grading of arrow1,...,targetn:grading of arrow n},
+             ...}
 
     Example:
 
         V={'A','B','C'}
-        A={'A':{'B','C'},'B':{'C'}}
+        A={'A':{'B':1,'C':1},'B':{'C':2}}
         G=DynkinGraph(V,A)
 
-    encodes the graph with three vertices A,B,C and arrows
-    from A to B and C and from B to C.
+    encodes the graph with three vertices A,B,C and arrows from A to B
+    and C (both degree 1) and one from B to C (degree 2).
 
     METHODS:
 
@@ -204,8 +213,10 @@ class DynkinGraph():
             morphisms are determined by G.arrows in the following way:
 
                 hom(X,X) = H^*(S^N;K)
-                hom(X,Y) = K in degree 0 if Y is in G.arrows[X]
-                hom(Y,X) = K in degree N if Y is in G.arrows[X]
+                hom(X,Y) = K in degree G.arrows[X][Y]
+                              if Y is in G.arrows[X]
+                hom(Y,X) = K in degree N-G.arrows[X][Y]
+                              if Y is in G.arrows[X]
 
             and whose operations are uniquely determined by the
             conditions that the category is CY-N and that a triangle
@@ -249,10 +260,10 @@ class DynkinGraph():
             A.morphisms[(X,X)],A.operations[(X,X,X)]=sph(K,N)
         # Initialise morphism spaces between objects
         # connected by arrows
-        A.morphisms.update({(X,Y): pt(K,0)
+        A.morphisms.update({(X,Y): pt(K,arrow[X][Y])
                           for X in objects
                           for Y in arrow[X]})
-        A.morphisms.update({(Y,X): pt(K,N)
+        A.morphisms.update({(Y,X): pt(K,N-arrow[X][Y])
                           for X in objects
                           for Y in arrow[X]})
         # Add in operations to ensure the CY condition holds
@@ -278,13 +289,21 @@ class DynkinGraph():
         
         return A
                         
-def BP(p,q,K,N):
-    '''Generates the Fukaya category of a Brieskorn-Pham Milnor fibre
-        of the form x^p+y^q+z_1^2+...+z_{N-1}^2=1.'''
+def BP(p,q,K,N,d):
+    '''Generates the Fukaya category of a Brieskorn-Pham Milnor fibre of
+    the form x^p+y^q+z_1^2+...+z_{N-1}^2=1. The morphisms between
+    spheres are in degree d or 2d.
+
+    '''
     M=(p-1)*(q-1)
     vertices={m for m in range(1,M+1)}
     def nbhd(m):
-        return {m+1,m+p,m+p+1} & {x for x in range(1,M+1)}
+        # Change your grading conventions here:
+        #nbh={m+1:0,m+p:0,m+p+1:0}
+        nbh={m+1:d,m+p:d,m+p+1:2*d}
+        return {x: nbh[x] for x in nbh if x in range(1,M+1)}
+        
+        
     arrows={m : nbhd(m) for m in range(1,M+1)}
     G=DynkinGraph(vertices,arrows)
     return G.categorify(K,N)
@@ -658,11 +677,9 @@ class A8Module(AlgebraicStructure):
         return answer
 
     def width(self):
-        '''Returns the difference between the maximal and minimal degree of an
-        element in M.total().
-        '''
+        '''Returns the maximal and minimal degree of an element in M.total().'''
         keys=self.total().keys()
-        return max(keys)-min(keys)
+        return min(keys),max(keys)
 
     def shift(self,m=1):
         '''Returns the A_\infty module shifted in degree by m.'''
@@ -683,6 +700,32 @@ class A8Module(AlgebraicStructure):
                 operations.update({word: new_op})
         return A8Module(A,modules,operations)
 
+    def oplus(self,other):
+        '''Returns the module which is the direct sum of self and other.'''
+        (M,N)=(self,other)
+        A=M.cat
+        new_modules={X: M[X].oplus(N[X])
+                     for X in ChainMap(M.modules,N.modules)}
+        new_operations={}
+        all_keys=ChainMap(M.operations,N.operations)
+        zeroNM=A8ModuleMap(N,M,0,{})
+        zeroMN=A8ModuleMap(M,N,0,{})
+        new_operations.update({word:
+                               LinearMap.block(
+                                   M.mu(*word),zeroNM.cpt(*word),
+                                   zeroMN.cpt(*word),N.mu(*word))
+                               for word in all_keys
+                               if len(word)==1})
+        new_operations.update({word:
+                               LinearMap.block(
+                                   M.mu(*word),zeroNM.cpt(*word),
+                                   zeroMN.cpt(*word),N.mu(*word))
+                               .flatten(1).unflatten(0,2)
+                               for word in all_keys
+                               if len(word)>1})
+        new_a8mod=A8Module(A,new_modules,new_operations)
+        return new_a8mod
+        
     
     def twist(self,X):
         '''Returns the twist of the module M around the object X.
