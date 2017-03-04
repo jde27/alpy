@@ -6,49 +6,42 @@ import a_infinity as ainf
 from itertools import permutations,combinations_with_replacement
 
 K=ff.FF(2)
-A=ainf.BP(2,3,K,2,1)
-B=ainf.BP(2,3,K,3,1)
-LA=A.total_yoneda()
-LB=B.total_yoneda()
+N=3
+depth=4
+milnor_number=3
+A=ainf.BP(milnor_number+1,2,K,2,1)
+B=ainf.BP(milnor_number+1,2,K,N,1)
 
 def word_twist(w,P):
     for n in w:
         P=P.twist(n)
-    return P.width()[1]
+    return P
 
-results_A={(): A.total_yoneda()}
-results_B={(): B.total_yoneda()}
-for n in range(1,3):
-    for results in [results_A,results_B]:
-        new_results={}
-        for w in results:
-            new_results.update({w+(X,): results[w].twist(X)
-                                for X in results[()].cat.objects})
-        results.update(new_results)
+def depth_twist():
+    results_A={(): A.total_yoneda()}
+    results_B={(): B.total_yoneda()}
+    for n in range(1,depth+1):
+        for results in [results_A,results_B]:
+            new_results={}
+            for w in results:
+                for X in results[()].cat.objects:
+                    new_results.update({w+(X,): results[w].twist(X)})
+                    #new_results[w+(X,)].verify()
+            results.update(new_results)
 
-for m in results_A:
-    print('word',m,'garside',results_A[m].width()[1]-2,'new',results_B[m].width()[1])
+    garsides={w: results_A[w].width()[1]-2 for w in results_A}
+    new_answers={w: results_B[w].width()[1] for w in results_B}
+    for w in garsides:
+        if new_answers[w] not in range((N-1)*garsides[w]+N,(N-1)*garsides[w]+2*N-1):
+            print('Exception:',w,'garside',garsides[w],'new',new_answers[w])
+            print(results_A[w].total())
+            print(results_B[w].total())
+        else:
+            print('Fine:',w,'garside',garsides[w],'new',new_answers[w])
+            #print(results_A[w].total())
+            #print(results_B[w].total())
 
-
-
-    
-'''words= [[1],[2],[1,1],[1,2],[2,1],[2,2],
-        [1,1,1],[1,1,2],[1,2,1],[2,1,1],[1,2,2],[2,1,2],[2,2,1],[2,2,2],
-        [1,1,1,1],[1,1,1,2],[1,1,2,1],[1,2,1,1],[2,1,1,1],
-        [1,1,2,2],[1,2,1,2],[2,1,1,2],[1,2,2,1],[2,1,2,1],
-        [2,2,1,1],[1,2,2,2],[2,1,2,2],[2,2,1,2],[2,2,2,1],
-        [2,2,2,2]]'''
-'''
-items=[1,2]
-words=[]
-for n in range(1,8):
-    for c in combinations_with_replacement(items,n):
-        for d in permutations(c):
-            if d not in words:
-                words.append(d)
-
-for w in words:
-    print('word ',w,' garside ',word_twist(w,MA,NA)-2,
-          ' other ',word_twist(w,MB,NB))
-
-'''
+depth_twist()
+#word=[1,2,3,1,3,2]
+#print(word_twist(word,A.total_yoneda())-2)
+#print(word_twist(word,B.total_yoneda()))

@@ -292,15 +292,13 @@ class DynkinGraph():
 def BP(p,q,K,N,d):
     '''Generates the Fukaya category of a Brieskorn-Pham Milnor fibre of
     the form x^p+y^q+z_1^2+...+z_{N-1}^2=1. The morphisms between
-    spheres are in degree d or 2d.
-
+    spheres are in degree d or 2d. For this implementation to work,
+    you need to take p>=q otherwise you will end up with extra arrows
     '''
     M=(p-1)*(q-1)
     vertices={m for m in range(1,M+1)}
     def nbhd(m):
-        # Change your grading conventions here:
-        #nbh={m+1:0,m+p:0,m+p+1:0}
-        nbh={m+1:d,m+p:d,m+p+1:2*d}
+        nbh={m+1:d,m+p-1:d,m+p:2*d}
         return {x: nbh[x] for x in nbh if x in range(1,M+1)}
         
         
